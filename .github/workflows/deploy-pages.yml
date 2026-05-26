@@ -32,6 +32,9 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          NEXT_PUBLIC_BASE_PATH: /estudo-biblico
+          NEXT_PUBLIC_SITE_URL: https://lorenzoalvesnunes.github.io/estudo-biblico
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

@@ -48,6 +48,8 @@ import { Particles } from "@/components/Particles";
 
 gsap.registerPlugin(ScrollTrigger);
 
+const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+
 type Mode = "login" | "register" | "recover";
 
 export function BiblePlatform() {
@@ -171,7 +173,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => v
   return (
     <section className="relative z-10 grid min-h-screen items-center px-5 py-12 lg:grid-cols-[1.05fr_.95fr] lg:px-12">
       <div className="absolute inset-0 z-0">
-        <img src="/assets/cinematic-bible-hero.png" alt="" className="h-full w-full object-cover opacity-45" />
+        <img src={`${basePath}/assets/cinematic-bible-hero.png`} alt="" className="h-full w-full object-cover opacity-45" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/86 to-ink/48" />
       </div>
       <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 max-w-3xl">
@@ -303,7 +305,7 @@ function Hero() {
   return (
     <section id="top" className="relative min-h-[88vh] overflow-hidden px-5 pt-28 sm:px-8 lg:px-10">
       <div className="absolute inset-0">
-        <img src="/assets/cinematic-bible-hero.png" alt="" className="h-full w-full object-cover opacity-62" />
+        <img src={`${basePath}/assets/cinematic-bible-hero.png`} alt="" className="h-full w-full object-cover opacity-62" />
         <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/82 to-ink/20" />
         <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-ink/55" />
       </div>
