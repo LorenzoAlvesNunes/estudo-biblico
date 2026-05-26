@@ -2,36 +2,26 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import gsap from "gsap";
-import { ScrollTrigger } from "gsap/ScrollTrigger";
 import {
-  Award,
+  ArrowRight,
   BookOpen,
   Bookmark,
-  Bot,
-  Brain,
-  CalendarDays,
-  CheckCircle2,
+  Check,
+  ChevronLeft,
+  ChevronRight,
   Flame,
-  Headphones,
-  LayoutDashboard,
+  Home,
   Library,
   Lock,
   LogOut,
   Mail,
-  Map,
+  Menu,
   PenLine,
   Search,
-  Send,
-  ShieldCheck,
-  Sparkles,
-  Star,
-  Timer,
-  Trophy,
-  UserPlus
+  X
 } from "lucide-react";
 import { books } from "@/data/bible";
-import { addXp, getBiblePercent, getLevelName } from "@/lib/learning";
+import { addXp, getLevelName } from "@/lib/learning";
 import {
   type AppUser,
   type UserProgress,
@@ -44,18 +34,108 @@ import {
   recoverPassword,
   register
 } from "@/lib/userStore";
-import { Particles } from "@/components/Particles";
 
-gsap.registerPlugin(ScrollTrigger);
+type AuthMode = "login" | "register" | "recover";
+type AppView = "dashboard" | "study";
+type BibleBook = (typeof books)[number] & {
+  id: string;
+  name: string;
+  testament: string;
+  category: string;
+  author: string;
+  date: string;
+  theme: string;
+  purpose: string;
+  historicalContext: string[];
+  timeline: string[];
+  characters: string[];
+  keyVerses: string[];
+  chapters: string[];
+  theology: string;
+  jesus: string;
+  originalWords: string[];
+  archaeology: string;
+  practice: string;
+};
+
+const chapterCounts: Record<string, number> = {
+  Genesis: 50,
+  Exodo: 40,
+  Levitico: 27,
+  Numeros: 36,
+  Deuteronomio: 34,
+  Josue: 24,
+  Juizes: 21,
+  Rute: 4,
+  "1 Samuel": 31,
+  "2 Samuel": 24,
+  "1 Reis": 22,
+  "2 Reis": 25,
+  "1 Cronicas": 29,
+  "2 Cronicas": 36,
+  Esdras: 10,
+  Neemias: 13,
+  Ester: 10,
+  Jo: 42,
+  Salmos: 150,
+  Proverbios: 31,
+  Eclesiastes: 12,
+  Cantares: 8,
+  Isaias: 66,
+  Jeremias: 52,
+  Lamentacoes: 5,
+  Ezequiel: 48,
+  Daniel: 12,
+  Oseias: 14,
+  Joel: 3,
+  Amos: 9,
+  Obadias: 1,
+  Jonas: 4,
+  Miqueias: 7,
+  Naum: 3,
+  Habacuque: 3,
+  Sofonias: 3,
+  Ageu: 2,
+  Zacarias: 14,
+  Malaquias: 4,
+  Mateus: 28,
+  Marcos: 16,
+  Lucas: 24,
+  Joao: 21,
+  Atos: 28,
+  Romanos: 16,
+  "1 Corintios": 16,
+  "2 Corintios": 13,
+  Galatas: 6,
+  Efesios: 6,
+  Filipenses: 4,
+  Colossenses: 4,
+  "1 Tessalonicenses": 5,
+  "2 Tessalonicenses": 3,
+  "1 Timoteo": 6,
+  "2 Timoteo": 4,
+  Tito: 3,
+  Filemom: 1,
+  Hebreus: 13,
+  Tiago: 5,
+  "1 Pedro": 5,
+  "2 Pedro": 3,
+  "1 Joao": 5,
+  "2 Joao": 1,
+  "3 Joao": 1,
+  Judas: 1,
+  Apocalipse: 22
+};
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
-
-type Mode = "login" | "register" | "recover";
 
 export function BiblePlatform() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AppUser | null>(null);
   const [progress, setProgress] = useState<UserProgress>(emptyProgress);
+  const [view, setView] = useState<AppView>("dashboard");
+  const [selectedBook, setSelectedBook] = useState<BibleBook>(books[0] as BibleBook);
+  const [chapter, setChapter] = useState(1);
 
   useEffect(() => {
     const session = getStoredSession();
@@ -63,7 +143,7 @@ export function BiblePlatform() {
       setUser(session);
       setProgress(loadProgress(session.id));
     }
-    const timer = window.setTimeout(() => setLoading(false), 1100);
+    const timer = window.setTimeout(() => setLoading(false), 650);
     return () => window.clearTimeout(timer);
   }, []);
 
@@ -72,36 +152,24 @@ export function BiblePlatform() {
     persistProgress(user, progress);
   }, [progress, user]);
 
-  useEffect(() => {
-    if (loading || !user) return;
-    gsap.utils.toArray(".reveal").forEach((item) => {
-      gsap.fromTo(
-        item as Element,
-        { opacity: 0, y: 28 },
-        {
-          opacity: 1,
-          y: 0,
-          duration: 0.8,
-          ease: "power3.out",
-          scrollTrigger: { trigger: item as Element, start: "top 82%" }
-        }
-      );
-    });
-    return () => ScrollTrigger.getAll().forEach((trigger) => trigger.kill());
-  }, [loading, user]);
-
   async function handleLogout() {
     await logout();
     setUser(null);
     setProgress(emptyProgress);
+    setView("dashboard");
   }
 
-  if (loading) return <CinematicLoader />;
+  function openStudy(book: BibleBook, nextChapter = 1) {
+    setSelectedBook(book);
+    setChapter(nextChapter);
+    setView("study");
+  }
+
+  if (loading) return <LoadingScreen />;
 
   if (!user) {
     return (
-      <main className="relative min-h-screen overflow-hidden bg-ink text-halo">
-        <Particles />
+      <main className="min-h-screen bg-study text-halo">
         <AuthScreen
           onAuthenticated={(nextUser) => {
             setUser(nextUser);
@@ -113,38 +181,48 @@ export function BiblePlatform() {
   }
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-ink text-halo">
-      <Particles />
-      <AppNav user={user} onLogout={handleLogout} />
-      <div className="relative z-10">
-        <Hero />
-        <Dashboard progress={progress} />
-        <StudyCenter progress={progress} setProgress={setProgress} />
-        <QuizArena progress={progress} setProgress={setProgress} />
-        <Devotional progress={progress} setProgress={setProgress} />
-        <BibleAi />
-      </div>
+    <main className="min-h-screen bg-study text-halo">
+      <TopBar user={user} view={view} onDashboard={() => setView("dashboard")} onLogout={handleLogout} />
+      <AnimatePresence mode="wait">
+        {view === "dashboard" ? (
+          <Dashboard
+            key="dashboard"
+            progress={progress}
+            onOpenStudy={openStudy}
+          />
+        ) : (
+          <StudyWorkspace
+            key="study"
+            book={selectedBook}
+            chapter={chapter}
+            setChapter={setChapter}
+            progress={progress}
+            setProgress={setProgress}
+            onBack={() => setView("dashboard")}
+          />
+        )}
+      </AnimatePresence>
     </main>
   );
 }
 
-function CinematicLoader() {
+function LoadingScreen() {
   return (
-    <div className="fixed inset-0 z-50 grid place-items-center bg-ink">
+    <div className="grid min-h-screen place-items-center bg-study text-halo">
       <div className="text-center">
         <motion.div
-          animate={{ rotate: 360 }}
-          transition={{ duration: 1.2, repeat: Infinity, ease: "linear" }}
-          className="mx-auto h-16 w-16 rounded-full border border-gold-300/20 border-t-gold-300"
+          animate={{ opacity: [0.35, 1, 0.35], scale: [0.96, 1, 0.96] }}
+          transition={{ duration: 1.5, repeat: Infinity, ease: "easeInOut" }}
+          className="mx-auto h-12 w-12 rounded-full border border-gold-300/25 border-t-gold-300"
         />
-        <p className="mt-6 text-sm uppercase tracking-[0.32em] text-gold-300">Lumen Scriptura</p>
+        <p className="mt-5 text-sm uppercase tracking-[0.28em] text-white/50">Preparando estudo</p>
       </div>
     </div>
   );
 }
 
 function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => void }) {
-  const [mode, setMode] = useState<Mode>("login");
+  const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("Lorenzo");
   const [email, setEmail] = useState("Lorenzoalzeny.com");
   const [password, setPassword] = useState("Bela1980@");
@@ -161,457 +239,613 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => v
       if (mode === "register") onAuthenticated(await register(name, email, password));
       if (mode === "recover") {
         await recoverPassword(email);
-        setMessage("Se Supabase estiver configurado, o email de recuperacao sera enviado.");
+        setMessage("Se o Supabase estiver configurado, voce recebera o email de recuperacao.");
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Algo deu errado.");
+      setMessage(error instanceof Error ? error.message : "Nao foi possivel continuar.");
     } finally {
       setBusy(false);
     }
   }
 
   return (
-    <section className="relative z-10 grid min-h-screen items-center px-5 py-12 lg:grid-cols-[1.05fr_.95fr] lg:px-12">
-      <div className="absolute inset-0 z-0">
-        <img src={`${basePath}/assets/cinematic-bible-hero.png`} alt="" className="h-full w-full object-cover opacity-45" />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/86 to-ink/48" />
+    <section className="relative grid min-h-screen overflow-hidden px-5 py-8 lg:grid-cols-[1fr_460px] lg:px-12">
+      <div className="absolute inset-0">
+        <img src={`${basePath}/assets/cinematic-bible-hero.png`} alt="" className="h-full w-full object-cover opacity-30" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_20%_15%,rgba(230,198,106,.16),transparent_32rem),linear-gradient(90deg,#050505_0%,rgba(5,5,5,.92)_45%,rgba(5,5,5,.74)_100%)]" />
       </div>
-      <motion.div initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} className="relative z-10 max-w-3xl">
-        <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-gold-300/30 bg-white/8 px-4 py-2 text-sm text-gold-100 backdrop-blur-xl">
-          <ShieldCheck size={16} />
-          Login primeiro. Jornada pessoal. Dados isolados.
-        </div>
-        <h1 className="text-5xl font-semibold leading-[1.02] text-halo sm:text-6xl xl:text-7xl">
-          Estudo biblico <span className="gold-text">premium</span> para a vida inteira.
-        </h1>
-        <p className="mt-6 max-w-2xl text-lg leading-8 text-white/70">
-          Uma experiencia de aprendizado com progresso individual, quizzes, devocionais, notas, favoritos, IA biblica e gamificacao.
-        </p>
-      </motion.div>
+
+      <div className="relative z-10 flex items-center">
+        <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl">
+          <span className="mb-5 inline-flex rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/62 backdrop-blur-xl">
+            Estudo biblico organizado, pessoal e profundo
+          </span>
+          <h1 className="text-5xl font-semibold leading-[1.02] text-halo sm:text-6xl">
+            Um lugar calmo para estudar a Biblia.
+          </h1>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-white/62">
+            Leia por capitulos, acompanhe progresso, escreva notas e revise com quizzes simples, sem distracao visual.
+          </p>
+        </motion.div>
+      </div>
 
       <motion.form
         onSubmit={submit}
-        initial={{ opacity: 0, scale: 0.96, y: 28 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="glass relative z-10 mt-10 rounded-lg p-6 lg:mt-0"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="relative z-10 mt-10 self-center rounded-2xl border border-white/10 bg-[#0c0c0e]/82 p-6 shadow-[0_28px_90px_rgba(0,0,0,.42)] backdrop-blur-2xl lg:mt-0"
       >
-        <div className="mb-6 flex rounded-full border border-white/10 bg-white/5 p-1">
-          {(["login", "register", "recover"] as Mode[]).map((item) => (
+        <div className="mb-7 grid grid-cols-3 rounded-full border border-white/10 bg-white/[0.04] p-1">
+          {(["login", "register", "recover"] as AuthMode[]).map((item) => (
             <button
-              type="button"
               key={item}
+              type="button"
               onClick={() => setMode(item)}
-              className={`h-10 flex-1 rounded-full text-sm font-semibold transition ${
-                mode === item ? "bg-halo text-ink" : "text-white/58 hover:text-halo"
-              }`}
+              className={`h-10 rounded-full text-sm font-medium transition ${mode === item ? "bg-halo text-ink" : "text-white/52 hover:text-white"}`}
             >
-              {item === "login" ? "Login" : item === "register" ? "Cadastro" : "Senha"}
+              {item === "login" ? "Entrar" : item === "register" ? "Conta" : "Senha"}
             </button>
           ))}
         </div>
 
-        <h2 className="text-2xl font-semibold text-halo">
-          {mode === "login" ? "Entrar na jornada" : mode === "register" ? "Criar conta" : "Recuperar acesso"}
-        </h2>
-        <p className="mt-2 text-sm leading-6 text-white/56">
-          Demo inicial: <span className="text-gold-300">Lorenzoalzeny.com</span> / <span className="text-gold-300">Bela1980@</span>
-        </p>
+        <h2 className="text-2xl font-semibold">{mode === "login" ? "Bem-vindo de volta" : mode === "register" ? "Criar nova conta" : "Recuperar senha"}</h2>
+        <p className="mt-2 text-sm leading-6 text-white/50">Demo: Lorenzoalzeny.com / Bela1980@</p>
 
-        {mode === "register" && (
-          <Field icon={UserPlus} label="Nome" value={name} onChange={setName} autoComplete="name" />
-        )}
-        <Field icon={Mail} label="Email" value={email} onChange={setEmail} autoComplete="email" />
-        {mode !== "recover" && (
-          <Field icon={Lock} label="Senha" type="password" value={password} onChange={setPassword} autoComplete="current-password" />
-        )}
+        {mode === "register" && <Input icon={PenLine} label="Nome" value={name} onChange={setName} />}
+        <Input icon={Mail} label="Email" value={email} onChange={setEmail} />
+        {mode !== "recover" && <Input icon={Lock} label="Senha" type="password" value={password} onChange={setPassword} />}
 
-        {message && <p className="mt-4 rounded-lg border border-gold-300/20 bg-gold-300/10 p-3 text-sm text-gold-100">{message}</p>}
+        {message && <p className="mt-4 rounded-xl border border-gold-300/20 bg-gold-300/10 p-3 text-sm text-gold-100">{message}</p>}
+
         <button disabled={busy} className="mt-6 h-12 w-full rounded-full bg-halo font-semibold text-ink transition hover:bg-gold-100 disabled:opacity-60">
-          {busy ? "Processando..." : mode === "login" ? "Entrar" : mode === "register" ? "Cadastrar" : "Enviar recuperacao"}
+          {busy ? "Aguarde..." : mode === "login" ? "Entrar" : mode === "register" ? "Criar conta" : "Enviar email"}
         </button>
       </motion.form>
     </section>
   );
 }
 
-function Field({
+function Input({
   icon: Icon,
   label,
   value,
   onChange,
-  type = "text",
-  autoComplete
+  type = "text"
 }: {
   icon: React.ElementType;
   label: string;
   value: string;
   onChange: (value: string) => void;
   type?: string;
-  autoComplete?: string;
 }) {
   return (
     <label className="mt-4 block">
       <span className="text-sm text-white/54">{label}</span>
-      <span className="mt-2 flex h-12 items-center gap-3 rounded-lg border border-white/10 bg-ink/54 px-4">
-        <Icon size={17} className="text-gold-300" />
-        <input
-          value={value}
-          type={type}
-          autoComplete={autoComplete}
-          onChange={(event) => onChange(event.target.value)}
-          className="h-full flex-1 bg-transparent text-white/80 outline-none"
-        />
+      <span className="mt-2 flex h-12 items-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] px-4 transition focus-within:border-gold-300/45">
+        <Icon size={17} className="text-gold-300/85" />
+        <input value={value} type={type} onChange={(event) => onChange(event.target.value)} className="h-full flex-1 bg-transparent text-white/82 outline-none" />
       </span>
     </label>
   );
 }
 
-function AppNav({ user, onLogout }: { user: AppUser; onLogout: () => void }) {
-  const links = [
-    ["dashboard", "Dashboard", LayoutDashboard],
-    ["estudos", "Estudos", Library],
-    ["quiz", "Quiz", Brain],
-    ["devocional", "Devocional", Flame],
-    ["ia", "IA", Bot]
-  ] as const;
-
+function TopBar({ user, view, onDashboard, onLogout }: { user: AppUser; view: AppView; onDashboard: () => void; onLogout: () => void }) {
   return (
-    <header className="fixed left-0 right-0 top-0 z-40 border-b border-white/10 bg-ink/64 px-4 backdrop-blur-2xl">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-3">
-        <a href="#top" className="flex items-center gap-3">
-          <span className="grid h-9 w-9 place-items-center rounded-full border border-gold-300/40 bg-gold-300/10 text-gold-100">
+    <header className="sticky top-0 z-40 border-b border-white/8 bg-[#08080a]/82 px-4 backdrop-blur-2xl">
+      <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-3">
+        <button onClick={onDashboard} className="flex items-center gap-3">
+          <span className="grid h-9 w-9 place-items-center rounded-xl border border-gold-300/25 bg-gold-300/10 text-gold-300">
             <BookOpen size={18} />
           </span>
-          <span className="hidden text-sm font-semibold uppercase tracking-[0.24em] text-halo sm:block">Lumen</span>
-        </a>
-        <nav className="hide-scrollbar flex items-center gap-1 overflow-x-auto rounded-full border border-white/10 bg-white/5 p-1">
-          {links.map(([id, label, Icon]) => (
-            <a key={id} href={`#${id}`} className="flex h-9 shrink-0 items-center gap-2 rounded-full px-3 text-sm text-white/62 transition hover:bg-white/10 hover:text-halo">
-              <Icon size={15} />
-              <span className="hidden md:inline">{label}</span>
-            </a>
-          ))}
-        </nav>
-        <button onClick={onLogout} className="flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 text-sm text-white/64 hover:text-halo" title={`Sair de ${user.email}`}>
-          <LogOut size={15} />
-          <span className="hidden lg:inline">Sair</span>
+          <span className="font-semibold tracking-wide">Lumen Scriptura</span>
         </button>
+        <div className="hidden items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] p-1 md:flex">
+          <button onClick={onDashboard} className={`flex h-9 items-center gap-2 rounded-full px-4 text-sm transition ${view === "dashboard" ? "bg-white/10 text-halo" : "text-white/52 hover:text-white"}`}>
+            <Home size={15} />
+            Inicio
+          </button>
+          <span className="flex h-9 items-center gap-2 rounded-full px-4 text-sm text-white/52">
+            <Library size={15} />
+            Estudo
+          </span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="hidden text-sm text-white/46 sm:block">{user.name}</span>
+          <button onClick={onLogout} title="Sair" className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white">
+            <LogOut size={16} />
+          </button>
+        </div>
       </div>
     </header>
   );
 }
 
-function Hero() {
+function Dashboard({ progress, onOpenStudy }: { progress: UserProgress; onOpenStudy: (book: BibleBook, chapter?: number) => void }) {
+  const [query, setQuery] = useState("");
+  const filteredBooks = useMemo(() => {
+    const search = query.toLowerCase();
+    return (books as BibleBook[]).filter((book) => `${book.name} ${book.category} ${book.theme}`.toLowerCase().includes(search));
+  }, [query]);
+  const totalChapters = getTotalChapters();
+  const completedChapters = getCompletedChapterCount(progress);
+  const percent = Math.round((completedChapters / totalChapters) * 100);
+
   return (
-    <section id="top" className="relative min-h-[88vh] overflow-hidden px-5 pt-28 sm:px-8 lg:px-10">
-      <div className="absolute inset-0">
-        <img src={`${basePath}/assets/cinematic-bible-hero.png`} alt="" className="h-full w-full object-cover opacity-62" />
-        <div className="absolute inset-0 bg-gradient-to-r from-ink via-ink/82 to-ink/20" />
-        <div className="absolute inset-0 bg-gradient-to-t from-ink via-transparent to-ink/55" />
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1500px] px-5 py-8">
+      <section className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
+          <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Dashboard</p>
+          <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">Escolha um livro e continue uma jornada simples de leitura.</h1>
+          <p className="mt-4 max-w-2xl leading-7 text-white/56">A plataforma agora prioriza leitura, clareza, notas e progresso por capitulo. Sem excesso. Sem ruido.</p>
+          <button onClick={() => onOpenStudy(books[0] as BibleBook, 1)} className="mt-7 inline-flex items-center gap-2 rounded-full bg-halo px-5 py-3 font-semibold text-ink transition hover:bg-gold-100">
+            Comecar Genesis
+            <ArrowRight size={17} />
+          </button>
+        </div>
+
+        <div className="grid gap-3">
+          <Metric label="Progresso" value={`${percent}%`} detail={`${completedChapters} de ${totalChapters} capitulos`} />
+          <Metric label="Streak" value={`${progress.streak} dias`} detail="ritmo de leitura" />
+          <Metric label="Nivel" value={getLevelName(progress.level)} detail={`${progress.xp} XP acumulado`} />
+        </div>
+      </section>
+
+      <section className="mt-8 rounded-3xl border border-white/10 bg-[#0b0b0d]/76 p-5 shadow-soft">
+        <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div>
+            <h2 className="text-2xl font-semibold">Biblioteca biblica</h2>
+            <p className="mt-1 text-sm text-white/46">66 livros organizados para estudo progressivo.</p>
+          </div>
+          <label className="flex h-11 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 md:w-80">
+            <Search size={17} className="text-white/42" />
+            <input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Buscar livro..." className="w-full bg-transparent text-sm outline-none" />
+          </label>
+        </div>
+
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredBooks.map((book) => {
+            const done = progress.completedChapters[book.id]?.length ?? 0;
+            const total = getChapterCount(book);
+            return (
+              <button key={book.id} onClick={() => onOpenStudy(book, Math.min(done + 1, total))} className="group rounded-2xl border border-white/9 bg-white/[0.03] p-4 text-left transition hover:-translate-y-0.5 hover:border-gold-300/28 hover:bg-white/[0.055]">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-halo">{book.name}</h3>
+                    <p className="mt-1 text-sm text-white/42">{book.category}</p>
+                  </div>
+                  <span className="text-xs text-gold-300/80">{Math.round((done / total) * 100)}%</span>
+                </div>
+                <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/8">
+                  <div className="h-full rounded-full bg-gold-300/80 transition-all" style={{ width: `${(done / total) * 100}%` }} />
+                </div>
+              </button>
+            );
+          })}
+        </div>
+      </section>
+    </motion.div>
+  );
+}
+
+function StudyWorkspace({
+  book,
+  chapter,
+  setChapter,
+  progress,
+  setProgress,
+  onBack
+}: {
+  book: BibleBook;
+  chapter: number;
+  setChapter: (chapter: number) => void;
+  progress: UserProgress;
+  setProgress: React.Dispatch<React.SetStateAction<UserProgress>>;
+  onBack: () => void;
+}) {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [quizOpen, setQuizOpen] = useState(false);
+  const chapters = getChapterCount(book);
+  const completed = progress.completedChapters[book.id] ?? [];
+  const isRead = completed.includes(chapter);
+  const noteKey = `${book.id}:${chapter}`;
+  const [note, setNote] = useState(progress.notes[noteKey] ?? "");
+
+  useEffect(() => {
+    setNote(progress.notes[noteKey] ?? "");
+  }, [noteKey, progress.notes]);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setProgress((current) => {
+        if ((current.notes[noteKey] ?? "") === note) return current;
+        return { ...current, notes: { ...current.notes, [noteKey]: note } };
+      });
+    }, 450);
+    return () => window.clearTimeout(timer);
+  }, [note, noteKey, setProgress]);
+
+  function markAsRead() {
+    setProgress((current) => {
+      const currentChapters = current.completedChapters[book.id] ?? [];
+      const nextChapters = Array.from(new Set([...currentChapters, chapter])).sort((a, b) => a - b);
+      const completedChapters = { ...current.completedChapters, [book.id]: nextChapters };
+      const completedBooks = nextChapters.length === chapters ? Array.from(new Set([...current.completedBooks, book.id])) : current.completedBooks;
+      return addXp({
+        ...current,
+        completedChapters,
+        completedBooks,
+        studiedMinutes: current.studiedMinutes + 12,
+        recentActivity: [`Leu ${book.name} ${chapter}`, ...current.recentActivity].slice(0, 6)
+      }, 35);
+    });
+    setQuizOpen(true);
+  }
+
+  function nextChapter() {
+    setChapter(Math.min(chapter + 1, chapters));
+  }
+
+  function favoriteVerse() {
+    const verse = getKeyVerse(book, chapter);
+    setProgress((current) => ({
+      ...current,
+      favoriteVerses: Array.from(new Set([...current.favoriteVerses, verse])),
+      favorites: Array.from(new Set([...current.favorites, `${book.name} ${chapter}`]))
+    }));
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto grid max-w-[1600px] gap-0 lg:grid-cols-[320px_minmax(0,1fr)_360px]">
+      <button onClick={() => setSidebarOpen(true)} className="fixed bottom-5 left-5 z-40 grid h-12 w-12 place-items-center rounded-full border border-white/10 bg-halo text-ink shadow-soft lg:hidden">
+        <Menu size={19} />
+      </button>
+
+      <AnimatePresence>
+        {sidebarOpen && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 bg-black/55 lg:hidden">
+            <motion.div initial={{ x: -340 }} animate={{ x: 0 }} exit={{ x: -340 }} className="h-full w-[86vw] max-w-sm bg-[#09090b]">
+              <StudySidebar book={book} chapter={chapter} setChapter={(value) => { setChapter(value); setSidebarOpen(false); }} progress={progress} onBack={onBack} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      <aside className="sticky top-16 hidden h-[calc(100vh-4rem)] border-r border-white/8 lg:block">
+        <StudySidebar book={book} chapter={chapter} setChapter={setChapter} progress={progress} onBack={onBack} />
+      </aside>
+
+      <article className="min-h-[calc(100vh-4rem)] px-5 py-8 lg:px-10">
+        <div className="mx-auto max-w-3xl">
+          <button onClick={onBack} className="mb-6 inline-flex items-center gap-2 text-sm text-white/48 transition hover:text-white">
+            <ChevronLeft size={16} />
+            Voltar para biblioteca
+          </button>
+
+          <div className="mb-8">
+            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">{book.name}</p>
+            <h1 className="mt-3 text-4xl font-semibold leading-tight sm:text-5xl">Capitulo {chapter}</h1>
+            <p className="mt-4 leading-7 text-white/58">{buildChapterIntro(book, chapter)}</p>
+          </div>
+
+          <ReadingCard book={book} chapter={chapter} onFavorite={favoriteVerse} />
+
+          <StudySection title="Resumo" text={buildSummary(book, chapter)} />
+          <StudySection title="Contexto historico" text={book.historicalContext?.[chapter % book.historicalContext.length] ?? book.purpose} />
+          <InsightGrid book={book} chapter={chapter} />
+          <StudySection title="Aplicacao pratica" text={book.practice} />
+
+          <div className="mt-8 flex flex-col gap-3 border-t border-white/8 pt-6 sm:flex-row">
+            <button onClick={markAsRead} className={`inline-flex h-12 items-center justify-center gap-2 rounded-full px-5 font-semibold transition ${isRead ? "border border-gold-300/25 bg-gold-300/10 text-gold-100" : "bg-halo text-ink hover:bg-gold-100"}`}>
+              <Check size={17} />
+              {isRead ? "Capitulo lido" : "Marcar como lido"}
+            </button>
+            <button onClick={nextChapter} className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-5 font-semibold text-white/72 transition hover:border-white/20 hover:text-white">
+              Proximo capitulo
+              <ChevronRight size={17} />
+            </button>
+          </div>
+        </div>
+      </article>
+
+      <aside className="border-t border-white/8 px-5 py-6 lg:sticky lg:top-16 lg:h-[calc(100vh-4rem)] lg:border-l lg:border-t-0 lg:px-5">
+        <NotesPanel book={book} chapter={chapter} note={note} setNote={setNote} progress={progress} />
+      </aside>
+
+      <QuizModal open={quizOpen} onClose={() => setQuizOpen(false)} book={book} chapter={chapter} setProgress={setProgress} />
+    </motion.div>
+  );
+}
+
+function StudySidebar({
+  book,
+  chapter,
+  setChapter,
+  progress,
+  onBack
+}: {
+  book: BibleBook;
+  chapter: number;
+  setChapter: (chapter: number) => void;
+  progress: UserProgress;
+  onBack: () => void;
+}) {
+  const total = getChapterCount(book);
+  const completed = progress.completedChapters[book.id] ?? [];
+  const percent = Math.round((completed.length / total) * 100);
+
+  return (
+    <div className="flex h-full flex-col p-5">
+      <button onClick={onBack} className="mb-5 flex items-center gap-2 text-sm text-white/48 transition hover:text-white">
+        <ChevronLeft size={16} />
+        Biblioteca
+      </button>
+      <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+        <p className="text-xs uppercase tracking-[0.22em] text-gold-300/75">{book.category}</p>
+        <h2 className="mt-2 text-2xl font-semibold">{book.name}</h2>
+        <p className="mt-2 text-sm leading-6 text-white/50">Capitulo atual: {chapter}</p>
+        <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/8">
+          <div className="h-full rounded-full bg-gold-300/85" style={{ width: `${percent}%` }} />
+        </div>
+        <p className="mt-2 text-xs text-white/42">{percent}% concluido</p>
       </div>
-      <div className="relative z-10 mx-auto flex min-h-[calc(88vh-7rem)] max-w-7xl items-center">
-        <div className="max-w-4xl">
-          <motion.p initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="mb-4 text-sm uppercase tracking-[0.28em] text-gold-300">
-            Jornada personalizada
-          </motion.p>
-          <motion.h1 initial={{ opacity: 0, y: 28 }} animate={{ opacity: 1, y: 0 }} className="text-5xl font-semibold leading-[1.02] sm:text-6xl xl:text-7xl">
-            Aprenda toda a Biblia com profundidade, beleza e constancia.
-          </motion.h1>
-          <motion.blockquote initial={{ opacity: 0, clipPath: "inset(0 100% 0 0)" }} animate={{ opacity: 1, clipPath: "inset(0 0% 0 0)" }} transition={{ delay: 0.35, duration: 1 }} className="mt-7 border-l border-gold-300/70 pl-5 text-xl text-halo">
-            "Lampada para os meus pes e luz para o meu caminho."
-          </motion.blockquote>
-          <a href="#dashboard" className="mt-9 inline-flex rounded-full bg-halo px-6 py-3 font-semibold text-ink transition hover:bg-gold-100">
-            Começar Jornada
-          </a>
+
+      <div className="hide-scrollbar mt-5 flex-1 overflow-y-auto pr-1">
+        <div className="grid grid-cols-5 gap-2">
+          {Array.from({ length: total }).map((_, index) => {
+            const value = index + 1;
+            const done = completed.includes(value);
+            const active = chapter === value;
+            return (
+              <button
+                key={value}
+                onClick={() => setChapter(value)}
+                className={`h-11 rounded-xl border text-sm transition ${
+                  active
+                    ? "border-gold-300/50 bg-gold-300/16 text-gold-100"
+                    : done
+                      ? "border-white/10 bg-white/[0.07] text-white/74"
+                      : "border-white/8 bg-white/[0.025] text-white/42 hover:text-white"
+                }`}
+              >
+                {value}
+              </button>
+            );
+          })}
         </div>
       </div>
+    </div>
+  );
+}
+
+function ReadingCard({ book, chapter, onFavorite }: { book: BibleBook; chapter: number; onFavorite: () => void }) {
+  const keyVerse = getKeyVerse(book, chapter);
+  return (
+    <section className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className="text-sm text-white/42">Leitura biblica</p>
+          <h2 className="mt-1 text-2xl font-semibold">{book.name} {chapter}</h2>
+        </div>
+        <button onClick={onFavorite} title="Favoritar versiculo-chave" className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-gold-300">
+          <Bookmark size={17} />
+        </button>
+      </div>
+      <div className="mt-6 rounded-2xl border border-gold-300/14 bg-gold-300/[0.06] p-5">
+        <p className="text-sm uppercase tracking-[0.2em] text-gold-300/70">Versiculo-chave</p>
+        <p className="mt-3 text-xl leading-8 text-halo">{keyVerse}</p>
+      </div>
+      <p className="mt-5 leading-8 text-white/64">
+        Leia este capitulo em sua Biblia e observe: quem age, qual problema aparece, o que Deus revela e qual resposta de fe o texto pede.
+      </p>
     </section>
   );
 }
 
-function Dashboard({ progress }: { progress: UserProgress }) {
-  const percent = getBiblePercent(progress, books.length);
-  const stats = [
-    ["Biblia estudada", `${percent}%`, BookOpen],
-    ["Streak", `${progress.streak} dias`, Flame],
-    ["Tempo total", `${progress.studiedMinutes} min`, Timer],
-    ["Quizzes", String(progress.quizzesDone), Brain],
-    ["Nivel espiritual", getLevelName(progress.level), Trophy],
-    ["XP", String(progress.xp), Award]
-  ] as const;
-
+function StudySection({ title, text }: { title: string; text: string }) {
   return (
-    <Section id="dashboard" eyebrow="Dashboard" title="Seu progresso individual, separado de todos os outros usuarios.">
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {stats.map(([label, value, Icon]) => (
-          <div key={label} className="glass reveal rounded-lg p-5">
-            <div className="mb-5 flex items-center justify-between">
-              <span className="text-sm text-white/55">{label}</span>
-              <span className="grid h-10 w-10 place-items-center rounded-full bg-gold-300/10 text-gold-300">
-                <Icon size={18} />
-              </span>
-            </div>
-            <div className="text-3xl font-semibold text-halo">{value}</div>
-          </div>
-        ))}
-      </div>
-      <div className="glass reveal mt-5 rounded-lg p-6">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-xl font-semibold">Progresso visual</h3>
-          <span className="text-sm text-gold-300">{progress.completedBooks.length}/{books.length} livros</span>
-        </div>
-        <div className="h-3 overflow-hidden rounded-full bg-white/10">
-          <motion.div className="h-full rounded-full bg-gradient-to-r from-gold-700 via-gold-300 to-halo" animate={{ width: `${percent}%` }} />
-        </div>
-        <div className="mt-5 grid grid-cols-11 gap-2 md:grid-cols-22">
-          {books.map((book: any) => (
-            <span key={book.id} className={`aspect-square rounded-[4px] border ${progress.completedBooks.includes(book.id) ? "border-gold-300/50 bg-gold-300/40" : "border-white/10 bg-white/5"}`} title={book.name} />
-          ))}
-        </div>
-      </div>
-    </Section>
+    <section className="mt-6 rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+      <h3 className="text-lg font-semibold">{title}</h3>
+      <p className="mt-3 leading-8 text-white/62">{text}</p>
+    </section>
   );
 }
 
-function StudyCenter({ progress, setProgress }: { progress: UserProgress; setProgress: React.Dispatch<React.SetStateAction<UserProgress>> }) {
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<any>(books[0]);
-  const [note, setNote] = useState(progress.notes[selected.id] ?? "");
-  const filtered = useMemo(() => books.filter((book: any) => `${book.name} ${book.category} ${book.theme}`.toLowerCase().includes(query.toLowerCase())), [query]);
-
-  useEffect(() => setNote(progress.notes[selected.id] ?? ""), [progress.notes, selected.id]);
-
-  function completeBook() {
-    setProgress((current) => {
-      const completedBooks = Array.from(new Set([...current.completedBooks, selected.id]));
-      return addXp({ ...current, completedBooks, studiedMinutes: current.studiedMinutes + 20, recentActivity: [`Estudou ${selected.name}`, ...current.recentActivity].slice(0, 5) }, 120);
-    });
-  }
-
-  function favorite() {
-    setProgress((current) => ({ ...current, favorites: Array.from(new Set([...current.favorites, selected.name])) }));
-  }
-
-  function saveNote() {
-    setProgress((current) => ({ ...current, notes: { ...current.notes, [selected.id]: note } }));
-  }
-
-  return (
-    <Section id="estudos" eyebrow="Estudo Biblico" title="Escolha um livro e abra uma pagina interativa completa.">
-      <div className="grid gap-5 xl:grid-cols-[.38fr_.62fr]">
-        <aside className="glass reveal rounded-lg p-4">
-          <div className="flex items-center gap-3 rounded-lg border border-white/10 bg-ink/50 px-4">
-            <Search size={18} className="text-gold-300" />
-            <input value={query} onChange={(event) => setQuery(event.target.value)} className="h-12 flex-1 bg-transparent outline-none" placeholder="Pesquisar livro, tema ou categoria..." />
-          </div>
-          <div className="hide-scrollbar mt-4 grid max-h-[42rem] gap-2 overflow-y-auto pr-1 sm:grid-cols-2 xl:grid-cols-1">
-            {filtered.map((book: any) => (
-              <button key={book.id} onClick={() => setSelected(book)} className={`rounded-lg border p-4 text-left transition ${selected.id === book.id ? "border-gold-300/55 bg-gold-300/12" : "border-white/10 bg-white/[0.04] hover:border-white/20"}`}>
-                <div className="flex items-center justify-between gap-3">
-                  <span className="font-semibold text-halo">{book.name}</span>
-                  {progress.completedBooks.includes(book.id) && <CheckCircle2 size={17} className="text-gold-300" />}
-                </div>
-                <p className="mt-2 text-sm text-white/52">{book.category}</p>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <article className="glass reveal rounded-lg p-5 sm:p-6">
-          <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <p className="text-sm uppercase tracking-[0.24em] text-gold-300">{selected.testament} / {selected.category}</p>
-              <h3 className="mt-2 text-4xl font-semibold text-halo">{selected.name}</h3>
-              <p className="mt-3 max-w-2xl leading-7 text-white/66">{selected.theme}</p>
-            </div>
-            <div className="flex gap-2">
-              <IconButton title="Favoritar" icon={Bookmark} onClick={favorite} />
-              <IconButton title="Concluir livro" icon={CheckCircle2} onClick={completeBook} />
-            </div>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-2">
-            <StudyCard title="Autor" icon={PenLine} text={selected.author} />
-            <StudyCard title="Data" icon={CalendarDays} text={selected.date} />
-            <StudyCard title="Mapas e geografia" icon={Map} text={selected.map ?? selected.historicalContext?.[3]} />
-            <StudyCard title="Arqueologia" icon={Star} text={selected.archaeology} />
-          </div>
-
-          <StudyList title="Linha do tempo" items={selected.timeline} />
-          <StudyList title="Personagens" items={selected.characters} />
-          <StudyList title="Resumo capitulo por capitulo" items={selected.chapters} />
-
-          <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <TextPanel title="Estudo teologico" text={selected.theology} />
-            <TextPanel title="Jesus no livro" text={selected.jesus} />
-            <TextPanel title="Aplicacoes" text={selected.practice} />
-            <StudyList title="Palavras originais" items={selected.originalWords} compact />
-          </div>
-
-          <div className="mt-5 rounded-lg border border-white/10 bg-white/[0.04] p-4">
-            <h4 className="font-semibold text-halo">Anotacoes privadas</h4>
-            <textarea value={note} onChange={(event) => setNote(event.target.value)} className="mt-3 min-h-32 w-full resize-none rounded-lg border border-white/10 bg-ink/50 p-4 outline-none focus:border-gold-300/50" placeholder="Suas notas ficam salvas apenas no seu usuario." />
-            <button onClick={saveNote} className="mt-3 rounded-full bg-halo px-5 py-2 font-semibold text-ink">Salvar nota</button>
-          </div>
-        </article>
-      </div>
-    </Section>
-  );
-}
-
-function QuizArena({ progress, setProgress }: { progress: UserProgress; setProgress: React.Dispatch<React.SetStateAction<UserProgress>> }) {
-  const questions = [
-    { q: "Qual livro abre a narrativa da criacao?", a: "Genesis", options: ["Genesis", "Romanos", "Atos", "Salmos"] },
-    { q: "Em qual evangelho Jesus e apresentado como o Verbo?", a: "Joao", options: ["Mateus", "Marcos", "Lucas", "Joao"] },
-    { q: "Qual carta enfatiza fortemente justificacao pela fe?", a: "Romanos", options: ["Romanos", "Filemom", "Judas", "2 Joao"] }
+function InsightGrid({ book, chapter }: { book: BibleBook; chapter: number }) {
+  const items = [
+    ["Ponto importante", book.timeline?.[chapter % book.timeline.length] ?? book.theme],
+    ["Personagem", book.characters?.[chapter % book.characters.length] ?? "Povo de Deus"],
+    ["Conexao biblica", book.jesus],
+    ["Palavra-chave", book.originalWords?.[chapter % book.originalWords.length] ?? "fe"]
   ];
-  const [index, setIndex] = useState(0);
+
+  return (
+    <div className="mt-6 grid gap-3 sm:grid-cols-2">
+      {items.map(([title, text]) => (
+        <div key={title} className="rounded-2xl border border-white/8 bg-white/[0.03] p-5">
+          <p className="text-sm text-gold-300/70">{title}</p>
+          <p className="mt-2 leading-7 text-white/64">{text}</p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function NotesPanel({
+  book,
+  chapter,
+  note,
+  setNote,
+  progress
+}: {
+  book: BibleBook;
+  chapter: number;
+  note: string;
+  setNote: (note: string) => void;
+  progress: UserProgress;
+}) {
+  const favorite = getKeyVerse(book, chapter);
+  return (
+    <div className="mx-auto max-w-3xl lg:max-w-none">
+      <div className="mb-5 flex items-center justify-between">
+        <div>
+          <p className="text-sm text-white/42">Painel pessoal</p>
+          <h2 className="text-xl font-semibold">Anotacoes</h2>
+        </div>
+        <PenLine size={18} className="text-gold-300/70" />
+      </div>
+      <textarea
+        value={note}
+        onChange={(event) => setNote(event.target.value)}
+        className="min-h-72 w-full resize-none rounded-2xl border border-white/10 bg-white/[0.035] p-4 leading-7 text-white/72 outline-none transition placeholder:text-white/28 focus:border-gold-300/35"
+        placeholder="Escreva pensamentos, perguntas, insights e aplicacoes..."
+      />
+      <p className="mt-2 text-xs text-white/34">Salvo automaticamente.</p>
+
+      <div className="mt-6 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+        <p className="text-sm font-medium text-white/72">Versiculo marcado</p>
+        <p className="mt-2 text-sm leading-6 text-white/48">{favorite}</p>
+      </div>
+
+      <div className="mt-4 rounded-2xl border border-white/8 bg-white/[0.03] p-4">
+        <p className="text-sm font-medium text-white/72">Favoritos</p>
+        <div className="mt-3 space-y-2">
+          {progress.favoriteVerses.slice(0, 4).map((item) => (
+            <p key={item} className="rounded-xl bg-white/[0.035] px-3 py-2 text-sm text-white/48">{item}</p>
+          ))}
+          {progress.favoriteVerses.length === 0 && <p className="text-sm text-white/34">Nenhum favorito ainda.</p>}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function QuizModal({
+  open,
+  onClose,
+  book,
+  chapter,
+  setProgress
+}: {
+  open: boolean;
+  onClose: () => void;
+  book: BibleBook;
+  chapter: number;
+  setProgress: React.Dispatch<React.SetStateAction<UserProgress>>;
+}) {
   const [selected, setSelected] = useState<string | null>(null);
-  const current = questions[index];
+  const question = useMemo(() => buildQuiz(book, chapter), [book, chapter]);
+  const isCorrect = selected === question.answer;
+
+  useEffect(() => {
+    if (!open) setSelected(null);
+  }, [open]);
 
   function answer(option: string) {
     if (selected) return;
     setSelected(option);
-    const correct = option === current.a;
-    setProgress((value) => addXp({ ...value, quizzesDone: value.quizzesDone + 1, quizScores: { ...value.quizScores, [`quiz-${Date.now()}`]: correct ? 100 : 30 } }, correct ? 90 : 25));
-  }
-
-  return (
-    <Section id="quiz" eyebrow="Quiz Interativo" title="XP, niveis, correcao animada e dificuldade progressiva.">
-      <div className="glass reveal mx-auto max-w-4xl rounded-lg p-6">
-        <div className="mb-5 flex justify-between text-sm text-white/58">
-          <span>Pergunta {index + 1}/{questions.length}</span>
-          <span>Nivel {progress.level}</span>
-        </div>
-        <h3 className="text-2xl font-semibold">{current.q}</h3>
-        <div className="mt-6 grid gap-3">
-          {current.options.map((option) => (
-            <button key={option} onClick={() => answer(option)} className={`rounded-lg border p-4 text-left transition ${selected && option === current.a ? "border-emerald-300/50 bg-emerald-300/10" : selected === option ? "border-red-300/50 bg-red-300/10" : "border-white/10 bg-white/[0.04] hover:border-gold-300/40"}`}>
-              {option}
-            </button>
-          ))}
-        </div>
-        <button onClick={() => { setSelected(null); setIndex((value) => (value + 1) % questions.length); }} className="mt-6 rounded-full bg-halo px-5 py-3 font-semibold text-ink">Proxima</button>
-      </div>
-    </Section>
-  );
-}
-
-function Devotional({ progress, setProgress }: { progress: UserProgress; setProgress: React.Dispatch<React.SetStateAction<UserProgress>> }) {
-  const [text, setText] = useState("");
-
-  function saveDevotional() {
-    setProgress((current) => addXp({ ...current, streak: Math.max(1, current.streak + 1), devotionalHistory: [new Date().toISOString(), ...current.devotionalHistory], recentActivity: ["Fez devocional diario", ...current.recentActivity].slice(0, 5) }, 60));
-    setText("");
-  }
-
-  return (
-    <Section id="devocional" eyebrow="Modo Devocional" title="Leitura, oracao, reflexao e historico espiritual.">
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="glass reveal rounded-lg p-6">
-          <p className="text-sm uppercase tracking-[0.24em] text-gold-300">Hoje</p>
-          <h3 className="mt-3 text-3xl font-semibold">Salmo 119:105</h3>
-          <p className="mt-4 text-xl leading-8 text-white/78">Lampada para os meus pes e luz para o meu caminho.</p>
-          <p className="mt-5 leading-7 text-white/64">A Palavra nao revela toda a estrada de uma vez; ela ilumina o proximo passo com fidelidade suficiente para obedecer.</p>
-        </div>
-        <div className="glass reveal rounded-lg p-6">
-          <h3 className="text-2xl font-semibold">Pensamentos do dia</h3>
-          <textarea value={text} onChange={(event) => setText(event.target.value)} className="mt-5 min-h-56 w-full resize-none rounded-lg border border-white/10 bg-ink/50 p-4 outline-none focus:border-gold-300/50" />
-          <button onClick={saveDevotional} className="mt-4 rounded-full bg-halo px-5 py-3 font-semibold text-ink">Salvar devocional</button>
-        </div>
-      </div>
-    </Section>
-  );
-}
-
-function BibleAi() {
-  const [messages, setMessages] = useState([
-    { role: "assistant", text: "Posso explicar versiculos, criar quizzes, resumir livros e sugerir aplicacoes praticas." }
-  ]);
-  const [input, setInput] = useState("");
-
-  function send(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!input.trim()) return;
-    setMessages((current) => [
+    setProgress((current) => addXp({
       ...current,
-      { role: "user", text: input },
-      { role: "assistant", text: `Estudo sugerido: leia o contexto, identifique o tema central, conecte com Cristo e aplique em obediencia. Pergunta: ${input}` }
-    ]);
-    setInput("");
+      quizzesDone: current.quizzesDone + 1,
+      quizScores: { ...current.quizScores, [`${book.id}:${chapter}:${Date.now()}`]: option === question.answer ? 100 : 40 },
+      recentActivity: [`Quiz de ${book.name} ${chapter}`, ...current.recentActivity].slice(0, 6)
+    }, option === question.answer ? 45 : 15));
   }
 
   return (
-    <Section id="ia" eyebrow="IA Biblica" title="Chat para perguntas, resumos, quizzes e estudos guiados.">
-      <div className="glass reveal overflow-hidden rounded-lg">
-        <div className="max-h-[28rem] space-y-4 overflow-y-auto p-5">
-          {messages.map((message, index) => (
-            <div key={index} className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}>
-              <div className={`max-w-[82%] rounded-lg border p-4 ${message.role === "user" ? "border-gold-300/25 bg-gold-300/12" : "border-white/10 bg-white/[0.05]"}`}>
-                <p className="leading-7 text-white/76">{message.text}</p>
+    <AnimatePresence>
+      {open && (
+        <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-50 grid place-items-center bg-black/62 px-4 backdrop-blur-sm">
+          <motion.div initial={{ scale: 0.96, y: 14 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.96, y: 14 }} className="w-full max-w-xl rounded-3xl border border-white/10 bg-[#101012] p-6 shadow-soft">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm uppercase tracking-[0.2em] text-gold-300/70">Quiz rapido</p>
+                <h2 className="mt-2 text-2xl font-semibold">{book.name} {chapter}</h2>
               </div>
+              <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-white/10 text-white/48 transition hover:text-white">
+                <X size={17} />
+              </button>
             </div>
-          ))}
-        </div>
-        <form onSubmit={send} className="flex gap-3 border-t border-white/10 p-4">
-          <input value={input} onChange={(event) => setInput(event.target.value)} className="h-12 flex-1 rounded-full border border-white/10 bg-ink/54 px-5 outline-none" placeholder="Pergunte sobre um texto, doutrina ou livro..." />
-          <button className="grid h-12 w-12 place-items-center rounded-full bg-halo text-ink"><Send size={18} /></button>
-        </form>
-      </div>
-    </Section>
+
+            <p className="mt-5 text-lg leading-8">{question.prompt}</p>
+            <div className="mt-5 space-y-3">
+              {question.options.map((option) => (
+                <button
+                  key={option}
+                  onClick={() => answer(option)}
+                  className={`w-full rounded-2xl border p-4 text-left transition ${
+                    selected && option === question.answer
+                      ? "border-emerald-300/45 bg-emerald-300/10"
+                      : selected === option
+                        ? "border-red-300/45 bg-red-300/10"
+                        : "border-white/10 bg-white/[0.035] hover:border-gold-300/25"
+                  }`}
+                >
+                  {option}
+                </button>
+              ))}
+            </div>
+
+            {selected && (
+              <div className="mt-5 rounded-2xl border border-white/10 bg-white/[0.035] p-4">
+                <p className="font-semibold">{isCorrect ? "Resposta correta" : "Quase. Vamos ajustar a leitura."}</p>
+                <p className="mt-2 leading-7 text-white/58">{question.explanation}</p>
+              </div>
+            )}
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
 
-function Section({ id, eyebrow, title, children }: { id: string; eyebrow: string; title: string; children: React.ReactNode }) {
+function Metric({ label, value, detail }: { label: string; value: string; detail: string }) {
   return (
-    <section id={id} className="relative px-5 py-20 sm:px-8 lg:px-10">
-      <div className="mx-auto max-w-7xl">
-        <div className="mb-10 max-w-3xl">
-          <p className="mb-3 text-sm font-semibold uppercase tracking-[0.28em] text-gold-300">{eyebrow}</p>
-          <h2 className="text-3xl font-semibold text-halo sm:text-4xl lg:text-5xl">{title}</h2>
-        </div>
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function IconButton({ title, icon: Icon, onClick }: { title: string; icon: React.ElementType; onClick: () => void }) {
-  return (
-    <button onClick={onClick} title={title} className="grid h-10 w-10 place-items-center rounded-full border border-gold-300/25 bg-gold-300/10 text-gold-300 transition hover:bg-gold-300/18">
-      <Icon size={18} />
-    </button>
-  );
-}
-
-function StudyCard({ title, icon: Icon, text }: { title: string; icon: React.ElementType; text: string }) {
-  return (
-    <div className="rounded-lg border border-white/10 bg-white/[0.04] p-4">
-      <Icon className="mb-3 text-gold-300" size={20} />
-      <div className="text-sm text-white/48">{title}</div>
-      <p className="mt-2 leading-6 text-white/76">{text}</p>
+    <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-soft">
+      <p className="text-sm text-white/44">{label}</p>
+      <p className="mt-2 text-3xl font-semibold">{value}</p>
+      <p className="mt-2 text-sm text-white/38">{detail}</p>
     </div>
   );
 }
 
-function StudyList({ title, items, compact = false }: { title: string; items: string[]; compact?: boolean }) {
-  return (
-    <div className={`${compact ? "" : "mt-5"} rounded-lg border border-white/10 bg-ink/34 p-4`}>
-      <h4 className="font-semibold text-halo">{title}</h4>
-      <div className="mt-3 space-y-2">
-        {items.map((item) => (
-          <div key={item} className="rounded-md bg-white/[0.05] px-3 py-2 text-sm leading-6 text-white/68">{item}</div>
-        ))}
-      </div>
-    </div>
-  );
+function getChapterCount(book: BibleBook) {
+  return chapterCounts[book.name] ?? 1;
 }
 
-function TextPanel({ title, text }: { title: string; text: string }) {
-  return (
-    <div className="rounded-lg border border-gold-300/18 bg-gold-300/8 p-4">
-      <h4 className="font-semibold text-gold-100">{title}</h4>
-      <p className="mt-3 leading-7 text-white/70">{text}</p>
-    </div>
-  );
+function getTotalChapters() {
+  return (books as BibleBook[]).reduce((sum, book) => sum + getChapterCount(book), 0);
+}
+
+function getCompletedChapterCount(progress: UserProgress) {
+  return Object.values(progress.completedChapters).reduce((sum, chapters) => sum + chapters.length, 0);
+}
+
+function getKeyVerse(book: BibleBook, chapter: number) {
+  const verse = book.keyVerses?.[(chapter - 1) % book.keyVerses.length] ?? `${book.name} ${chapter}`;
+  return `${verse} - leia no contexto de ${book.name} ${chapter}.`;
+}
+
+function buildChapterIntro(book: BibleBook, chapter: number) {
+  return `${book.name} ${chapter} deve ser lido dentro do tema do livro: ${book.theme}`;
+}
+
+function buildSummary(book: BibleBook, chapter: number) {
+  const template = book.chapters?.[(chapter - 1) % book.chapters.length] ?? book.purpose;
+  return `${template} Neste capitulo, observe a progressao do argumento, a resposta humana e o que o texto revela sobre Deus.`;
+}
+
+function buildQuiz(book: BibleBook, chapter: number) {
+  const answer = book.theme;
+  return {
+    prompt: `Qual ideia melhor resume a leitura de ${book.name} ${chapter}?`,
+    answer,
+    options: [
+      answer,
+      "Um texto isolado que pode ser aplicado sem observar contexto.",
+      "Uma narrativa sem conexao com a historia redentiva.",
+      "Um detalhe historico sem implicacao espiritual."
+    ],
+    explanation: `A leitura correta considera o tema do livro, seu contexto e sua contribuicao para a historia biblica. Em ${book.name}, o tema central ajuda a interpretar o capitulo sem forcar aplicacoes soltas.`
+  };
 }

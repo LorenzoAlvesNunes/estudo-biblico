@@ -14,7 +14,9 @@ export type UserProgress = {
   studiedMinutes: number;
   quizzesDone: number;
   completedBooks: string[];
+  completedChapters: Record<string, number[]>;
   favorites: string[];
+  favoriteVerses: string[];
   notes: Record<string, string>;
   devotionalHistory: string[];
   recentActivity: string[];
@@ -28,7 +30,9 @@ export const emptyProgress: UserProgress = {
   studiedMinutes: 0,
   quizzesDone: 0,
   completedBooks: [],
+  completedChapters: {},
   favorites: [],
+  favoriteVerses: [],
   notes: {},
   devotionalHistory: [],
   recentActivity: [],
