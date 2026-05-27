@@ -119,14 +119,12 @@ export async function loadUserProgress(user: AppUser): Promise<UserProgress> {
   return localProgress;
 }
 
-async function ensureProfile(user: AppUser) {
-  if (!supabase || user.provider !== "supabase") return;
-
-  await supabase.from("profiles").upsert({
-    id: user.id,
-    email: user.email,
-    name: user.name
-  });
+async function hashPassword(password: string): Promise<string> {
+  const data = new TextEncoder().encode(`${password}::lumen-scriptura`);
+  const digest = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
 }
 
 export async function persistProgress(user: AppUser, progress: UserProgress) {
@@ -201,6 +199,8 @@ async function persistDerivedTables(user: AppUser, progress: UserProgress) {
 }
 
 export async function login(email: string, password: string): Promise<AppUser> {
+  const normalizedEmail = email.toLowerCase().trim();
+
   if (email === DEMO_EMAIL && password === DEMO_PASSWORD) {
     const user = { id: "demo-lorenzo-zero-state", email, name: "Lorenzo", provider: "demo" as const };
     storeSession(user);
@@ -211,54 +211,53 @@ export async function login(email: string, password: string): Promise<AppUser> {
     throw new Error("Supabase nao esta configurado. Use o usuario demo ou configure as variaveis de ambiente.");
   }
 
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.user?.email) throw new Error(error?.message ?? "Nao foi possivel entrar.");
+  const hash = await hashPassword(password);
+  const { data, error } = await supabase
+    .from("app_users")
+    .select("id, email, name, password_hash")
+    .eq("email", normalizedEmail)
+    .maybeSingle();
 
-  const user = {
-    id: data.user.id,
-    email: data.user.email,
-    name: data.user.user_metadata?.name ?? data.user.email.split("@")[0],
-    provider: "supabase" as const
-  };
+  if (error) throw new Error("Nao foi possivel entrar. Tente novamente.");
+  if (!data || data.password_hash !== hash) throw new Error("E-mail ou senha incorretos.");
+
+  const user = { id: data.id as string, email: data.email as string, name: data.name as string, provider: "supabase" as const };
   storeSession(user);
-  await ensureProfile(user);
   return user;
 }
 
 export async function register(name: string, email: string, password: string): Promise<AppUser> {
+  const normalizedEmail = email.toLowerCase().trim();
+
   if (!supabase) {
-    const user = {
-      id: `local-${email.toLowerCase()}`,
-      email,
-      name,
-      provider: "demo" as const
-    };
+    const user = { id: `local-${normalizedEmail}`, email: normalizedEmail, name, provider: "demo" as const };
     storeSession(user);
     return user;
   }
 
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { data: { name } }
-  });
-  if (error || !data.user?.email) throw new Error(error?.message ?? "Nao foi possivel cadastrar.");
+  const { data: existing } = await supabase.from("app_users").select("id").eq("email", normalizedEmail).maybeSingle();
+  if (existing) throw new Error("Ja existe uma conta com esse e-mail. Tente entrar.");
 
-  const user = { id: data.user.id, email: data.user.email, name, provider: "supabase" as const };
+  const hash = await hashPassword(password);
+  const { data, error } = await supabase
+    .from("app_users")
+    .insert({ email: normalizedEmail, name, password_hash: hash })
+    .select("id, email, name")
+    .single();
+
+  if (error || !data) throw new Error("Nao foi possivel cadastrar. Tente novamente.");
+
+  const user = { id: data.id as string, email: data.email as string, name: data.name as string, provider: "supabase" as const };
   storeSession(user);
-  await ensureProfile(user);
   await persistProgress(user, emptyProgress);
   return user;
 }
 
-export async function recoverPassword(email: string) {
-  if (!supabase) return;
-  await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: typeof window !== "undefined" ? window.location.origin : undefined
-  });
+export async function recoverPassword(_email: string) {
+  // Recuperacao de senha por e-mail sera adicionada futuramente.
+  return;
 }
 
 export async function logout() {
   clearSession();
-  if (supabase) await supabase.auth.signOut();
 }

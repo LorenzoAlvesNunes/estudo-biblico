@@ -8,13 +8,14 @@
 -- Remove tabelas antigas/desalinhadas (estavam vazias)
 DROP TABLE IF EXISTS users, user_progress, completed_exams, quiz_scores, recent_activity CASCADE;
 DROP TABLE IF EXISTS completed_chapters, study_notes, favorites, sermons CASCADE;
-DROP TABLE IF EXISTS study_progress, profiles CASCADE;
+DROP TABLE IF EXISTS study_progress, profiles, app_users CASCADE;
 
--- Perfil do usuario (espelha auth.users)
-CREATE TABLE profiles (
-  id UUID PRIMARY KEY,
-  email TEXT,
-  name TEXT,
+-- Usuarios do app (login por e-mail/senha, senha guardada como hash)
+CREATE TABLE app_users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email TEXT UNIQUE NOT NULL,
+  name TEXT NOT NULL,
+  password_hash TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
