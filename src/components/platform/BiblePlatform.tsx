@@ -74,36 +74,36 @@ type BibleBook = (typeof books)[number] & {
 type SermonDraft = UserProgress["sermons"][number];
 
 const chapterCounts: Record<string, number> = {
-  Genesis: 50,
-  Exodo: 40,
-  Levitico: 27,
-  Numeros: 36,
-  Deuteronomio: 34,
-  Josue: 24,
-  Juizes: 21,
+  Gênesis: 50,
+  Êxodo: 40,
+  Levítico: 27,
+  Números: 36,
+  Deuteronômio: 34,
+  Josué: 24,
+  Juízes: 21,
   Rute: 4,
   "1 Samuel": 31,
   "2 Samuel": 24,
   "1 Reis": 22,
   "2 Reis": 25,
-  "1 Cronicas": 29,
-  "2 Cronicas": 36,
+  "1 Crônicas": 29,
+  "2 Crônicas": 36,
   Esdras: 10,
   Neemias: 13,
   Ester: 10,
-  Jo: 42,
+  Jó: 42,
   Salmos: 150,
-  Proverbios: 31,
+  Provérbios: 31,
   Eclesiastes: 12,
-  Cantares: 8,
-  Isaias: 66,
+  Câncio dos Cânticos: 8,
+  Isaías: 66,
   Jeremias: 52,
-  Lamentacoes: 5,
+  Lamentações: 5,
   Ezequiel: 48,
   Daniel: 12,
-  Oseias: 14,
+  Oséias: 14,
   Joel: 3,
-  Amos: 9,
+  Amós: 9,
   Obadias: 1,
   Jonas: 4,
   Miqueias: 7,
@@ -116,28 +116,28 @@ const chapterCounts: Record<string, number> = {
   Mateus: 28,
   Marcos: 16,
   Lucas: 24,
-  Joao: 21,
+  João: 21,
   Atos: 28,
   Romanos: 16,
-  "1 Corintios": 16,
-  "2 Corintios": 13,
-  Galatas: 6,
-  Efesios: 6,
+  "1 Coríntios": 16,
+  "2 Coríntios": 13,
+  Gálatas: 6,
+  Efésios: 6,
   Filipenses: 4,
   Colossenses: 4,
   "1 Tessalonicenses": 5,
   "2 Tessalonicenses": 3,
-  "1 Timoteo": 6,
-  "2 Timoteo": 4,
+  "1 Timóteo": 6,
+  "2 Timóteo": 4,
   Tito: 3,
   Filemom: 1,
   Hebreus: 13,
   Tiago: 5,
   "1 Pedro": 5,
   "2 Pedro": 3,
-  "1 Joao": 5,
-  "2 Joao": 1,
-  "3 Joao": 1,
+  "1 João": 5,
+  "2 João": 1,
+  "3 João": 1,
   Judas: 1,
   Apocalipse: 22
 };
@@ -301,7 +301,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => P
         setMessage("Se o Supabase estiver configurado, você receberá o e-mail de recuperação.");
       }
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Nao foi possivel continuar.");
+      setMessage(error instanceof Error ? error.message : "Não foi possível continuar.");
     } finally {
       setBusy(false);
     }
@@ -394,8 +394,8 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
   const navItems = [
     { id: "dashboard" as const, label: "Início", icon: Home },
     { id: "study" as const, label: "Curso", icon: Library },
-    { id: "bible-study" as const, label: "Estudo Biblico", icon: MessageSquare },
-    { id: "sermons" as const, label: "Pregacoes", icon: FileText },
+    { id: "bible-study" as const, label: "Estudo Bíblico", icon: MessageSquare },
+    { id: "sermons" as const, label: "Pregações", icon: FileText },
     { id: "general" as const, label: "Geral", icon: Presentation },
     { id: "ranking" as const, label: "Ranking", icon: Flame },
     { id: "book-selector" as const, label: "Livro", icon: BookOpen },
@@ -1045,7 +1045,7 @@ function InsightGrid({ book, chapter }: { book: BibleBook; chapter: number }) {
     ["Ponto importante", book.timeline?.[chapter % book.timeline.length] ?? book.theme],
     ["Personagem", book.characters?.[chapter % book.characters.length] ?? "Povo de Deus"],
     ["Lição espiritual", `Deus forma discernimento, obediência e maturidade por meio deste texto em ${book.name}.`],
-    ["Palavra-chave", book.originalWords?.[chapter % book.originalWords.length] ?? "fe"]
+    ["Palavra-chave", book.originalWords?.[chapter % book.originalWords.length] ?? "fé"]
   ];
 
   return (
@@ -1286,7 +1286,7 @@ function BibleStudyCenter({
         </div>
         <aside className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-soft">
           <h3 className="font-semibold">Salvar estudo</h3>
-          <p className="mt-2 text-sm leading-6 text-white/44">Guarde esta resposta como anotacao pessoal para revisar depois.</p>
+          <p className="mt-2 text-sm leading-6 text-white/44">Guarde esta resposta como anotação pessoal para revisar depois.</p>
           <button onClick={saveAsNote} className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-halo px-4 font-semibold text-ink">
             <Bookmark size={16} />
             Salvar nas notas
