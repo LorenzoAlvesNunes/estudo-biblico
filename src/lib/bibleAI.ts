@@ -87,7 +87,22 @@ export function validarPerguntaBiblica(pergunta: string): { valida: boolean; mot
     'santidade', 'obediência', 'arrependimento', 'batismo', 'eucaristia',
     'cristã', 'cristão', 'teologia', 'doutrina', 'espiritual', 'personagem',
     'apóstolo', 'profeta', 'sacerdote', 'rei', 'bênção', 'maldição',
-    'guerra espiritual', 'demônio', 'anjo', 'igreja', 'corpo de cristo'
+    'guerra espiritual', 'demônio', 'anjo', 'igreja', 'corpo de cristo',
+    // Personagens bíblicos comuns
+    'davi', 'salomao', 'salomão', 'moises', 'moisés', 'abraao', 'abraão',
+    'isaque', 'jaco', 'jacó', 'jose', 'josé', 'noe', 'noé', 'adao', 'adão',
+    'eva', 'caim', 'abel', 'samuel', 'saul', 'elias', 'eliseu', 'jonas',
+    'paulo', 'pedro', 'maria', 'jose', 'herodes', 'pilatos', 'judas',
+    'lucas', 'mateus', 'marcos', 'estevao', 'estêvão', 'barnabe', 'barnabé',
+    'timoteo', 'lazaro', 'lázaro', 'marta', 'madalena', 'gideao', 'gideão',
+    'sansao', 'sansão', 'rute', 'ester', 'jó', 'daniel', 'ezequiel',
+    'faraó', 'farao', 'goliais', 'golias', 'bate-seba', 'absalao', 'absalão',
+    // Termos e perguntas comuns
+    'quem era', 'quem foi', 'quem e', 'quem é', 'o que e', 'o que é',
+    'parabola', 'parábola', 'mandamento', 'pecado', 'céu', 'ceu', 'inferno',
+    'paraiso', 'paraíso', 'criacao', 'criação', 'diluvio', 'dilúvio',
+    'exodo', 'êxodo', 'cruz', 'calvario', 'calvário', 'pentecostes',
+    'trindade', 'pai', 'filho', 'palavra', 'escritura', 'sagrada'
   ];
 
   // Assuntos PROIBIDOS (REJEITA)
@@ -106,26 +121,25 @@ export function validarPerguntaBiblica(pergunta: string): { valida: boolean; mot
     'ciência mundana', 'física', 'química', 'biologia'
   ];
 
-  // Verifica palavras proibidas
+  // Se contém qualquer palavra-chave claramente bíblica, aceita direto.
+  const temPalavraChave = palavrasBiblicas.some(palavra => perguntaLower.includes(palavra));
+  if (temPalavraChave) {
+    return { valida: true };
+  }
+
+  // Caso contrário, rejeita apenas se for claramente sobre um assunto mundano.
   for (const proibido of assuntosProibidos) {
-    if (perguntaLower.includes(proibido)) {
+    // Usa limites de palavra para evitar falsos positivos (ex.: "amos" dentro de "amos a Deus").
+    const regex = new RegExp(`\\b${proibido.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'i');
+    if (regex.test(perguntaLower)) {
       return {
         valida: false,
-        motivo: `❌ Desculpe! Essa pergunta é sobre "${proibido.toUpperCase()}", não sobre Bíblia. Sou uma IA 100% focada em teologia cristã.`
+        motivo: `❌ Desculpe! Essa pergunta parece ser sobre "${proibido.toUpperCase()}", não sobre Bíblia. Sou uma IA focada em teologia cristã e na Palavra de Deus.`
       };
     }
   }
 
-  // Verifica se tem pelo menos uma palavra-chave bíblica
-  const temPalavraChave = palavrasBiblicas.some(palavra => perguntaLower.includes(palavra));
-
-  if (!temPalavraChave && pergunta.length < 15) {
-    return {
-      valida: false,
-      motivo: '❓ Sua pergunta parece não ser sobre Bíblia. Tente perguntar sobre versículos, teologia, personagens bíblicos, ou temas cristãos.'
-    };
-  }
-
+  // Sem palavra proibida: deixa passar. A IA e o prompt cuidam de recusar o que não for bíblico.
   return { valida: true };
 }
 
