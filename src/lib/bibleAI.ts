@@ -570,6 +570,22 @@ Varie o versículo conforme a data. Em português. Nada fora do JSON.`
 }
 
 /**
+ * Define de forma curta e clara um termo teológico/bíblico.
+ */
+export async function definirTermo(termo: string): Promise<string> {
+  return chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      {
+        role: 'user',
+        content: `Explique de forma clara e curta (3-4 frases) o significado bíblico do termo: "${termo}". Inclua uma referência bíblica de exemplo. Linguagem acessível.`
+      }
+    ],
+    { maxTokens: 400 }
+  );
+}
+
+/**
  * Sistema de prompt RIGOROSO para IA Bíblica 100% focada em Bíblia
  */
 export const SYSTEM_PROMPT_BIBLIA = `🙏 VOCÊ É UMA IA BÍBLICA PURA E RIGOROSA

@@ -58,6 +58,7 @@ import {
   versiculosParaMomento,
   gerarOracao,
   versiculoDoDia,
+  definirTermo,
   type EstudoEstruturado,
   type QuizPergunta,
   type DiaPlano,
@@ -533,6 +534,12 @@ function Dashboard({
   onNavigate: (view: AppView) => void;
 }) {
   const [query, setQuery] = useState("");
+  const [versiculo, setVersiculo] = useState<VersiculoDia | null>(null);
+  useEffect(() => {
+    let ativo = true;
+    versiculoDoDia().then((v) => { if (ativo) setVersiculo(v); }).catch(() => undefined);
+    return () => { ativo = false; };
+  }, []);
   const filteredBooks = useMemo(() => {
     const search = query.toLowerCase();
     return (books as BibleBook[]).filter((book) => `${book.name} ${book.category} ${book.theme}`.toLowerCase().includes(search));
@@ -567,6 +574,19 @@ function Dashboard({
           <Metric label="Quizzes e provas" value={`${progress.quizzesDone}/${progress.examsDone}`} detail="atividades concluídas" />
         </div>
       </section>
+
+      {versiculo && versiculo.texto && (
+        <motion.section
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          onClick={() => onNavigate("devocional")}
+          className="mt-6 flex cursor-pointer flex-col gap-2 rounded-3xl border border-gold-300/20 bg-gradient-to-r from-gold-300/[0.08] to-transparent p-6 shadow-soft transition hover:border-gold-300/40"
+        >
+          <p className="flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-gold-300/80"><Sparkle size={13} /> Versículo do dia</p>
+          <p className="text-lg font-medium leading-relaxed text-halo">“{versiculo.texto}”</p>
+          <p className="text-sm font-semibold text-gold-200">{versiculo.referencia} →</p>
+        </motion.section>
+      )}
 
       <section className="mt-8 rounded-3xl border border-white/10 bg-[#0b0b0d]/76 p-5 shadow-soft">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -1495,7 +1515,62 @@ function BibleStudyCenter({
           </aside>
         </section>
       )}
+
+      <GlossarioBlock />
     </motion.div>
+  );
+}
+
+function GlossarioBlock() {
+  const termos = [
+    "Graça", "Aliança", "Justificação", "Santificação", "Redenção", "Salvação",
+    "Arrependimento", "Fé", "Evangelho", "Pecado", "Misericórdia", "Reconciliação",
+    "Messias", "Discipulado", "Ressurreição", "Trindade", "Espírito Santo", "Profecia"
+  ];
+  const [termoAtivo, setTermoAtivo] = useState<string | null>(null);
+  const [definicao, setDefinicao] = useState("");
+  const [carregando, setCarregando] = useState(false);
+
+  async function abrir(termo: string) {
+    if (carregando) return;
+    setTermoAtivo(termo);
+    setDefinicao("");
+    setCarregando(true);
+    try {
+      setDefinicao(await definirTermo(termo));
+    } catch {
+      setDefinicao("Não foi possível carregar a definição agora.");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  return (
+    <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
+      <h2 className="flex items-center gap-2 text-xl font-semibold"><BookOpen size={19} className="text-gold-300" /> Glossário bíblico</h2>
+      <p className="mt-2 text-sm text-white/52">Toque em um termo para a IA explicar o significado.</p>
+      <div className="mt-5 flex flex-wrap gap-2">
+        {termos.map((t) => (
+          <button
+            key={t}
+            onClick={() => abrir(t)}
+            className={`rounded-full border px-4 py-2 text-sm transition ${termoAtivo === t ? "border-gold-300/50 bg-gold-300/10 text-gold-100" : "border-white/10 bg-white/[0.03] text-white/72 hover:border-gold-300/30 hover:text-gold-200"}`}
+          >
+            {t}
+          </button>
+        ))}
+      </div>
+      {termoAtivo && (
+        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} className="mt-5 rounded-2xl border border-white/10 bg-[#101012]/72 p-5">
+          <p className="text-lg font-semibold text-gold-200">{termoAtivo}</p>
+          {carregando ? (
+            <div className="mt-3 flex items-center gap-2 text-white/52"><Loader size={16} className="animate-spin text-gold-300" /> Buscando...</div>
+          ) : (
+            <p className="mt-2 leading-7 text-white/72 whitespace-pre-wrap">{definicao}</p>
+          )}
+        </motion.div>
+      )}
+    </section>
   );
 }
 
