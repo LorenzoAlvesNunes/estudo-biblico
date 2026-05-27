@@ -9,6 +9,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  Download,
   FileText,
   Flame,
   GraduationCap,
@@ -21,6 +22,7 @@ import {
   MessageSquare,
   PenLine,
   Plus,
+  Presentation,
   Search,
   Trash2,
   Type,
@@ -42,7 +44,11 @@ import {
 } from "@/lib/userStore";
 
 type AuthMode = "login" | "register" | "recover";
-type AppView = "dashboard" | "study" | "bible-study" | "sermons";
+type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "presentation";
+type BeforeInstallPromptEvent = Event & {
+  prompt: () => Promise<void>;
+  userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
+};
 type BibleBook = (typeof books)[number] & {
   id: string;
   name: string;
@@ -159,6 +165,11 @@ export function BiblePlatform() {
   }, []);
 
   useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+    navigator.serviceWorker.register(`${basePath}/sw.js`).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
     if (!user || !progressLoaded) return;
     persistProgress(user, progress);
   }, [progress, progressLoaded, user]);
@@ -223,6 +234,9 @@ export function BiblePlatform() {
         )}
         {view === "sermons" && (
           <SermonsStudio key="sermons" progress={progress} setProgress={setProgress} />
+        )}
+        {view === "presentation" && (
+          <PresentationBriefing key="presentation" onNavigate={setView} />
         )}
       </AnimatePresence>
     </main>
@@ -358,7 +372,8 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
     { id: "dashboard" as const, label: "Inicio", icon: Home },
     { id: "study" as const, label: "Curso", icon: Library },
     { id: "bible-study" as const, label: "Estudo Biblico", icon: MessageSquare },
-    { id: "sermons" as const, label: "Pregacoes", icon: FileText }
+    { id: "sermons" as const, label: "Pregacoes", icon: FileText },
+    { id: "presentation" as const, label: "Apresentacao", icon: Presentation }
   ];
 
   return (
@@ -383,6 +398,7 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
           ))}
         </div>
         <div className="flex items-center gap-2">
+          <InstallAppButton compact />
           <span className="hidden text-sm text-white/46 sm:block">{user.name}</span>
           <button onClick={onLogout} title="Sair" className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white">
             <LogOut size={16} />
@@ -427,6 +443,7 @@ function Dashboard({
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={() => onNavigate("bible-study")} className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/64 transition hover:text-white">Perguntar sobre a Biblia</button>
             <button onClick={() => onNavigate("sermons")} className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/64 transition hover:text-white">Criar pregacao</button>
+            <button onClick={() => onNavigate("presentation")} className="rounded-full border border-gold-300/20 bg-gold-300/[0.10] px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-300/[0.16]">Apresentar ao bispo</button>
           </div>
         </div>
 
@@ -497,6 +514,149 @@ function BookGroup({
         })}
       </div>
     </div>
+  );
+}
+
+function InstallAppButton({ compact = false }: { compact?: boolean }) {
+  const [promptEvent, setPromptEvent] = useState<BeforeInstallPromptEvent | null>(null);
+  const [hint, setHint] = useState("");
+
+  useEffect(() => {
+    function handlePrompt(event: Event) {
+      event.preventDefault();
+      setPromptEvent(event as BeforeInstallPromptEvent);
+      setHint("");
+    }
+
+    function handleInstalled() {
+      setPromptEvent(null);
+      setHint("App instalado.");
+    }
+
+    window.addEventListener("beforeinstallprompt", handlePrompt);
+    window.addEventListener("appinstalled", handleInstalled);
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handlePrompt);
+      window.removeEventListener("appinstalled", handleInstalled);
+    };
+  }, []);
+
+  async function install() {
+    if (promptEvent) {
+      await promptEvent.prompt();
+      await promptEvent.userChoice;
+      setPromptEvent(null);
+      return;
+    }
+
+    setHint("No celular: menu do navegador > Adicionar a tela inicial.");
+  }
+
+  return (
+    <span className={compact ? "relative" : "block"}>
+      <button
+        onClick={install}
+        className={compact ? "grid h-9 w-9 place-items-center rounded-full border border-gold-300/20 bg-gold-300/[0.10] text-gold-100 transition hover:bg-gold-300/[0.16]" : "inline-flex h-11 items-center gap-2 rounded-full bg-halo px-5 font-semibold text-ink transition hover:bg-gold-100"}
+        title="Instalar no celular"
+      >
+        <Download size={compact ? 16 : 17} />
+        {!compact && "Instalar no celular"}
+      </button>
+      {hint && !compact && <p className="mt-3 text-sm text-white/42">{hint}</p>}
+    </span>
+  );
+}
+
+function PresentationBriefing({ onNavigate }: { onNavigate: (view: AppView) => void }) {
+  const ideas = [
+    {
+      title: "Escola biblica digital",
+      text: "Cada livro vira uma jornada de estudo com leitura, explicacao, quiz, anotacoes e progresso."
+    },
+    {
+      title: "Discipulado acompanhavel",
+      text: "O aluno cresce por capitulos, XP, streak e revisoes, sem perder o foco espiritual."
+    },
+    {
+      title: "Pregacoes organizadas",
+      text: "Lideres podem criar esbocos, salvar temas, versiculos-base, topicos e aplicacoes."
+    },
+    {
+      title: "App no celular",
+      text: "A plataforma funciona como PWA: o usuario instala pela tela inicial e acessa como aplicativo."
+    }
+  ];
+
+  const roadmap = [
+    "Painel do pastor para acompanhar alunos, turmas e celulas.",
+    "Trilhas prontas: novo convertido, lideranca, evangelismo e familia.",
+    "Relatorios semanais de progresso para discipulado.",
+    "Biblioteca de pregacoes aprovadas pela lideranca.",
+    "Modo celula com roteiro, perguntas e desafio da semana."
+  ];
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1400px] px-5 py-8">
+      <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft lg:p-8">
+        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+          <div>
+            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Apresentacao para lideranca</p>
+            <h1 className="mt-3 max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl">Uma escola biblica moderna para formar pessoas com profundidade.</h1>
+            <p className="mt-5 max-w-3xl text-lg leading-8 text-white/58">
+              A proposta e simples: transformar o estudo biblico em uma jornada clara, acompanhavel e bonita, unindo leitura, ensino, anotacoes, quizzes, progresso e preparacao de pregacoes.
+            </p>
+            <div className="mt-7 flex flex-wrap gap-3">
+              <button onClick={() => onNavigate("dashboard")} className="inline-flex h-11 items-center gap-2 rounded-full bg-halo px-5 font-semibold text-ink transition hover:bg-gold-100">
+                Ver plataforma
+                <ArrowRight size={17} />
+              </button>
+              <InstallAppButton />
+            </div>
+          </div>
+
+          <div className="rounded-3xl border border-gold-300/18 bg-gold-300/[0.08] p-5">
+            <p className="text-sm uppercase tracking-[0.22em] text-gold-100/76">Pitch em 60 segundos</p>
+            <p className="mt-4 text-2xl font-semibold leading-snug">"Bispo, essa plataforma ajuda a igreja a estudar a Biblia com metodo, constancia e acompanhamento."</p>
+            <p className="mt-4 leading-7 text-white/56">Ela pode servir novos convertidos, lideres, celulas e pessoas que querem aprender a Palavra com profundidade, mas precisam de um caminho organizado.</p>
+          </div>
+        </div>
+      </section>
+
+      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {ideas.map((idea) => (
+          <article key={idea.title} className="rounded-3xl border border-white/10 bg-[#101012]/72 p-5 shadow-soft">
+            <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-300/[0.10] text-gold-200">
+              <Check size={17} />
+            </span>
+            <h2 className="mt-5 text-xl font-semibold">{idea.title}</h2>
+            <p className="mt-3 leading-7 text-white/52">{idea.text}</p>
+          </article>
+        ))}
+      </section>
+
+      <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
+        <div className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
+          <p className="text-sm uppercase tracking-[0.22em] text-gold-300/74">Como mostrar</p>
+          <div className="mt-5 space-y-4">
+            {["Entrar com login demo e mostrar que cada pessoa tem sua propria conta.", "Abrir Atos ou Joao e mostrar a jornada por capitulos.", "Escrever uma anotacao e concluir um quiz.", "Abrir Pregacoes e mostrar um esboco salvo.", "Mostrar o botao de instalar no celular."].map((item, index) => (
+              <div key={item} className="flex gap-4 rounded-2xl border border-white/8 bg-white/[0.025] p-4">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-halo text-sm font-bold text-ink">{index + 1}</span>
+                <p className="leading-7 text-white/58">{item}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <aside className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
+          <p className="text-sm uppercase tracking-[0.22em] text-gold-300/74">Proximas ideias</p>
+          <div className="mt-5 space-y-3">
+            {roadmap.map((item) => (
+              <p key={item} className="rounded-2xl border border-white/8 bg-white/[0.025] p-4 leading-7 text-white/56">{item}</p>
+            ))}
+          </div>
+        </aside>
+      </section>
+    </motion.div>
   );
 }
 
