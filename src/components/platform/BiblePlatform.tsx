@@ -282,7 +282,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => P
       if (mode === "register") await onAuthenticated(await register(name, email, password));
       if (mode === "recover") {
         await recoverPassword(email);
-        setMessage("Se o Supabase estiver configurado, voce recebera o email de recuperacao.");
+        setMessage("Se o Supabase estiver configurado, você receberá o e-mail de recuperação.");
       }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Nao foi possivel continuar.");
@@ -301,7 +301,7 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => P
       <div className="relative z-10 flex items-center">
         <motion.div initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} className="max-w-2xl">
           <span className="mb-5 inline-flex rounded-full border border-white/10 bg-white/6 px-4 py-2 text-sm text-white/62 backdrop-blur-xl">
-            Estudo biblico organizado, pessoal e profundo
+            Estudo bíblico organizado, pessoal e profundo
           </span>
           <h1 className="text-5xl font-semibold leading-[1.02] text-halo sm:text-6xl">
             Um lugar calmo para estudar a Bíblia.
@@ -475,7 +475,7 @@ function Dashboard({
           <h1 className="mt-3 max-w-3xl text-4xl font-semibold leading-tight sm:text-5xl">Escolha um livro e continue uma jornada simples de leitura.</h1>
           <p className="mt-4 max-w-2xl leading-7 text-white/56">A plataforma agora prioriza leitura, clareza, notas e progresso por capítulo. Sem excesso. Sem ruído.</p>
           <button onClick={() => onOpenStudy(books[0] as BibleBook, 1)} className="mt-7 inline-flex items-center gap-2 rounded-full bg-halo px-5 py-3 font-semibold text-ink transition hover:bg-gold-100">
-            Comecar Genesis
+            Começar Gênesis
             <ArrowRight size={17} />
           </button>
           <div className="mt-4 flex flex-wrap gap-2">
@@ -495,7 +495,7 @@ function Dashboard({
       <section className="mt-8 rounded-3xl border border-white/10 bg-[#0b0b0d]/76 p-5 shadow-soft">
         <div className="mb-5 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <div>
-            <h2 className="text-2xl font-semibold">Biblioteca biblica</h2>
+            <h2 className="text-2xl font-semibold">Biblioteca bíblica</h2>
             <p className="mt-1 text-sm text-white/46">66 livros organizados para estudo progressivo.</p>
           </div>
           <label className="flex h-11 items-center gap-3 rounded-full border border-white/10 bg-white/[0.04] px-4 md:w-80">
@@ -607,7 +607,7 @@ function InstallAppButton({ compact = false }: { compact?: boolean }) {
 function GeneralOverview({ progress, onOpenStudy }: { progress: UserProgress; onOpenStudy: (book: BibleBook, chapter?: number) => void }) {
   const highlights = [
     { icon: BookOpen, label: "66 livros", desc: "Bíblia completa organizada" },
-    { icon: Flame, label: "Progresso rastreado", desc: "XP, nivel, streak e resumos" },
+    { icon: Flame, label: "Progresso rastreado", desc: "XP, nível, streak e resumos" },
     { icon: Check, label: "Estudo guiado", desc: "Leitura, notas, quiz e revisão" },
     { icon: Download, label: "App no celular", desc: "Instale como PWA offline" }
   ];
@@ -619,7 +619,7 @@ function GeneralOverview({ progress, onOpenStudy }: { progress: UserProgress; on
           <div>
             <h1 className="max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl">Estude a Bíblia inteira de forma organizada.</h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-white/58">
-              Leia capítulo por capítulo, acompanhe seu progresso com XP e nivel, escreva anotacoes, faca quizzes e apresente pregacoes. Tudo estruturado para aprendizado profundo sem distração.
+              Leia capítulo por capítulo, acompanhe seu progresso com XP e nível, escreva anotações, faça quizzes e apresente pregações. Tudo estruturado para aprendizado profundo sem distração.
             </p>
           </div>
 
@@ -638,7 +638,7 @@ function GeneralOverview({ progress, onOpenStudy }: { progress: UserProgress; on
 
           <div className="flex flex-wrap gap-3">
             <button onClick={() => onOpenStudy(books[0] as BibleBook, 1)} className="inline-flex h-11 items-center gap-2 rounded-full bg-halo px-5 font-semibold text-ink transition hover:bg-gold-100">
-              Comecjar Bíblia
+              Começar Bíblia
               <ArrowRight size={17} />
             </button>
             <button onClick={() => window.scrollTo(0, 0)} className="inline-flex h-11 items-center gap-2 rounded-full border border-white/20 px-5 font-semibold transition hover:bg-white/5">
@@ -658,7 +658,7 @@ function RankingView({ user, progress }: { user: AppUser; progress: UserProgress
     { id: 2, name: "Ana Carolina", level: 6, xp: 1850, streak: 12, booksStarted: 4 },
     { id: 3, name: "Pastor Felipe", level: 7, xp: 2100, streak: 20, booksStarted: 6 },
     { id: 4, name: "Maria", level: 5, xp: 1400, streak: 8, booksStarted: 3 },
-    { id: 5, name: "Joao", level: 4, xp: 950, streak: 5, booksStarted: 2 },
+    { id: 5, name: "João", level: 4, xp: 950, streak: 5, booksStarted: 2 },
     { id: 6, name: "Ester", level: 6, xp: 1700, streak: 10, booksStarted: 4 }
   ].sort((a, b) => b.xp - a.xp);
 
@@ -668,7 +668,7 @@ function RankingView({ user, progress }: { user: AppUser; progress: UserProgress
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1000px] px-5 py-8">
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-8 shadow-soft">
         <h1 className="text-3xl font-semibold">Ranking da comunidade</h1>
-        <p className="mt-2 text-white/52">Veja quem esta avancando mais no estudo biblico</p>
+        <p className="mt-2 text-white/52">Veja quem está avançando mais no estudo bíblico</p>
 
         <div className="mt-8 overflow-x-auto">
           <table className="w-full text-left text-sm">
@@ -703,7 +703,7 @@ function RankingView({ user, progress }: { user: AppUser; progress: UserProgress
         <div className="mt-8 rounded-2xl border border-white/8 bg-white/[0.025] p-6">
           <p className="text-sm text-white/52 uppercase tracking-wider">Sua posicao</p>
           <p className="mt-2 text-3xl font-bold text-gold-300">#{currentUserRank}</p>
-          <p className="mt-1 text-white/58">{user.name} - {progress.level} nivel - {progress.xp} XP</p>
+          <p className="mt-1 text-white/58">{user.name} - {progress.level} nível - {progress.xp} XP</p>
         </div>
       </section>
     </motion.div>
@@ -874,7 +874,7 @@ function StudyWorkspace({
           <StudySection title="Explicacao e contexto" text={buildExplanation(book, chapter)} />
           <InsightGrid book={book} chapter={chapter} />
           <StudySection title="O que isso revela sobre Jesus" text={book.jesus} />
-          <StudySection title="Aplicacao pratica" text={book.practice} />
+          <StudySection title="Aplicação prática" text={book.practice} />
           <ExamPanel book={book} chapter={chapter} progress={progress} setProgress={setProgress} />
 
           <div className="mt-8 flex flex-col gap-3 border-t border-white/8 pt-6 sm:flex-row">
@@ -986,7 +986,7 @@ function ReadingCard({
     <section className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-sm text-white/42">Leitura biblica</p>
+          <p className="text-sm text-white/42">Leitura bíblica</p>
           <h2 className="mt-1 text-2xl font-semibold">{book.name} {chapter}</h2>
         </div>
         <div className="flex gap-2">
@@ -996,7 +996,7 @@ function ReadingCard({
           <button onClick={() => setFontSize(Math.min(22, fontSize + 1))} title="Aumentar fonte" className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white">
             <Type size={19} />
           </button>
-          <button onClick={onFavorite} title="Favoritar versiculo-chave" className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-gold-300">
+          <button onClick={onFavorite} title="Favoritar versículo-chave" className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-gold-300">
             <Bookmark size={17} />
           </button>
         </div>
@@ -1025,7 +1025,7 @@ function InsightGrid({ book, chapter }: { book: BibleBook; chapter: number }) {
   const items = [
     ["Ponto importante", book.timeline?.[chapter % book.timeline.length] ?? book.theme],
     ["Personagem", book.characters?.[chapter % book.characters.length] ?? "Povo de Deus"],
-    ["Licao espiritual", `Deus forma discernimento, obediencia e maturidade por meio deste texto em ${book.name}.`],
+    ["Lição espiritual", `Deus forma discernimento, obediência e maturidade por meio deste texto em ${book.name}.`],
     ["Palavra-chave", book.originalWords?.[chapter % book.originalWords.length] ?? "fe"]
   ];
 
@@ -1076,7 +1076,7 @@ function ExamPanel({
           <p className="text-sm uppercase tracking-[0.2em] text-gold-300/70">Prova final</p>
           <h3 className="mt-2 text-lg font-semibold">{book.name} {start}-{end}</h3>
           <p className="mt-2 text-sm leading-6 text-white/48">
-            {unlocked ? "Prova liberada para revisar interpretacao, contexto e aplicacao." : `Conclua ${end - start + 1 - completedInRange} capítulo(s) deste bloco para liberar.`}
+            {unlocked ? "Prova liberada para revisar interpretação, contexto e aplicação." : `Conclua ${end - start + 1 - completedInRange} capítulo(s) deste bloco para liberar.`}
           </p>
         </div>
         <button onClick={completeExam} disabled={!unlocked || done} className="inline-flex h-11 items-center justify-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 text-sm font-semibold text-white/64 transition enabled:hover:border-gold-300/25 enabled:hover:text-gold-100 disabled:opacity-45">
@@ -1238,7 +1238,7 @@ function BibleStudyCenter({
     setProgress((current) => ({
       ...current,
       notes: { ...current.notes, [key]: `${question}\n\n${answer.summary}` },
-      recentActivity: ["Estudou uma pergunta biblica", ...current.recentActivity].slice(0, 6)
+      recentActivity: ["Estudou uma pergunta bíblica", ...current.recentActivity].slice(0, 6)
     }));
   }
 
@@ -1247,7 +1247,7 @@ function BibleStudyCenter({
       <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
         <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Estudo Biblico</p>
         <h1 className="mt-3 text-4xl font-semibold leading-tight">Central de perguntas e explicacoes.</h1>
-        <p className="mt-3 max-w-2xl leading-7 text-white/52">Pesquise duvidas, versiculos, temas e contexto. As respostas sao organizadas como material de estudo.</p>
+        <p className="mt-3 max-w-2xl leading-7 text-white/52">Pesquise dúvidas, versículos, temas e contexto. As respostas são organizadas como material de estudo.</p>
         <label className="mt-7 flex min-h-14 items-center gap-3 rounded-2xl border border-white/10 bg-[#0f0f11] px-4">
           <Search size={18} className="text-white/38" />
           <input value={question} onChange={(event) => setQuestion(event.target.value)} className="h-14 flex-1 bg-transparent outline-none" placeholder="Ex: O que significa Atos 1:8?" />
@@ -1262,7 +1262,7 @@ function BibleStudyCenter({
             <InfoBlock title="Contexto" text={answer.context} />
             <InfoBlock title="Significado" text={answer.meaning} />
             <InfoBlock title="Aplicacao" text={answer.application} />
-            <InfoBlock title="Conexoes biblicas" text={answer.connections} />
+            <InfoBlock title="Conexões bíblicas" text={answer.connections} />
           </div>
         </div>
         <aside className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-soft">
@@ -1340,7 +1340,7 @@ function SermonsStudio({
           {progress.sermons.map((sermon) => (
             <button key={sermon.id} onClick={() => setActiveId(sermon.id)} className={`w-full rounded-2xl border p-4 text-left transition ${activeId === sermon.id ? "border-gold-300/28 bg-gold-300/[0.08]" : "border-white/8 bg-white/[0.025] hover:bg-white/[0.05]"}`}>
               <p className="font-semibold">{sermon.title || "Sem titulo"}</p>
-              <p className="mt-1 text-sm text-white/42">{sermon.theme || "Tema nao definido"}</p>
+              <p className="mt-1 text-sm text-white/42">{sermon.theme || "Tema não definido"}</p>
             </button>
           ))}
           {progress.sermons.length === 0 && <p className="rounded-2xl border border-white/8 bg-white/[0.025] p-4 text-sm leading-6 text-white/42">Crie seu primeiro esboco para salvar mensagens, temas e aplicacoes.</p>}
@@ -1377,7 +1377,7 @@ function SermonsStudio({
         <SermonArea label="Topicos" value={active.topics} onChange={(value) => upsertSermon({ topics: value })} />
         <SermonArea label="Conclusao" value={active.conclusion} onChange={(value) => upsertSermon({ conclusion: value })} />
         <SermonArea label="Aplicacao" value={active.application} onChange={(value) => upsertSermon({ application: value })} />
-        <p className="mt-4 text-xs text-white/34">Salvo automaticamente no seu usuario.</p>
+        <p className="mt-4 text-xs text-white/34">Salvo automaticamente no seu usuário.</p>
       </section>
     </motion.div>
   );
@@ -1443,13 +1443,13 @@ function buildChapterIntro(book: BibleBook, chapter: number) {
 
 function buildSummary(book: BibleBook, chapter: number) {
   const template = book.chapters?.[(chapter - 1) % book.chapters.length] ?? book.purpose;
-  return `${template} Neste capítulo, observe a progressao do argumento, a resposta humana e o que o texto revela sobre Deus.`;
+  return `${template} Neste capítulo, observe a progressão do argumento, a resposta humana e o que o texto revela sobre Deus.`;
 }
 
 function buildExplanation(book: BibleBook, chapter: number) {
   const context = book.historicalContext?.[chapter % book.historicalContext.length] ?? book.purpose;
   const character = book.characters?.[chapter % book.characters.length] ?? "o povo de Deus";
-  return `${context} Leia o capítulo observando ${character}, os acontecimentos principais e a tensao espiritual do texto. A explicação central deve unir contexto historico, significado original, teologia e uma aplicacao obediente para hoje.`;
+  return `${context} Leia o capítulo observando ${character}, os acontecimentos principais e a tensão espiritual do texto. A explicação central deve unir contexto histórico, significado original, teologia e uma aplicação obediente para hoje.`;
 }
 
 function buildQuiz(book: BibleBook, chapter: number) {
@@ -1460,10 +1460,10 @@ function buildQuiz(book: BibleBook, chapter: number) {
     options: [
       answer,
       "Um texto isolado que pode ser aplicado sem observar contexto.",
-      "Uma narrativa sem conexao com a historia redentiva.",
-      "Um detalhe historico sem implicacao espiritual."
+      "Uma narrativa sem conexão com a história redentiva.",
+      "Um detalhe histórico sem implicação espiritual."
     ],
-    explanation: `A leitura correta considera o tema do livro, seu contexto e sua contribuicao para a historia biblica. Em ${book.name}, o tema central ajuda a interpretar o capítulo sem forcar aplicacoes soltas.`
+    explanation: `A leitura correta considera o tema do livro, seu contexto e sua contribuição para a história bíblica. Em ${book.name}, o tema central ajuda a interpretar o capítulo sem forçar aplicações soltas.`
   };
 }
 
@@ -1477,8 +1477,8 @@ function canTakeExam(progress: UserProgress, book: BibleBook, chapter: number) {
 function buildExamQuestions(book: BibleBook, start: number, end: number) {
   return [
     `Explique o tema principal de ${book.name} ${start}-${end} em uma frase.`,
-    `Qual contexto historico mais ajuda a interpretar este bloco?`,
-    `Como este trecho aponta para Cristo ou para a historia da redencao?`
+    `Qual contexto histórico mais ajuda a interpretar este bloco?`,
+    `Como este trecho aponta para Cristo ou para a história da redenção?`
   ];
 }
 
@@ -1488,22 +1488,22 @@ function buildStudyAnswer(question: string) {
 
   if (isActs) {
     return {
-      title: "Atos 1:8 — poder, testemunho e missao",
-      summary: "Atos 1:8 mostra que a missao da igreja nasce do poder do Espirito Santo. O texto nao e apenas sobre estrategia evangelistica, mas sobre dependencia espiritual e testemunho centrado em Cristo.",
-      context: "Jesus fala aos discipulos depois da ressurreicao e antes da ascensao. Eles esperavam a restauracao imediata do reino, mas Jesus direciona a atencao para a missao.",
-      meaning: "O poder prometido nao e dominio politico; e capacitacao espiritual para testemunhar com fidelidade em Jerusalem, Judeia, Samaria e ate os confins da terra.",
-      application: "A igreja hoje precisa trocar ansiedade por fidelidade: receber direcao de Cristo, depender do Espirito e testemunhar onde Deus a colocou.",
-      connections: "Conecta-se com Lucas 24:49, Mateus 28:18-20 e com o movimento inteiro de Atos, que mostra o evangelho avancando por meio do Espirito."
+      title: "Atos 1:8 — poder, testemunho e missão",
+      summary: "Atos 1:8 mostra que a missão da igreja nasce do poder do Espírito Santo. O texto não é apenas sobre estratégia evangelística, mas sobre dependência espiritual e testemunho centrado em Cristo.",
+      context: "Jesus fala aos discípulos depois da ressurreição e antes da ascensão. Eles esperavam a restauração imediata do reino, mas Jesus direciona a atenção para a missão.",
+      meaning: "O poder prometido não é domínio político; é capacitação espiritual para testemunhar com fidelidade em Jerusalém, Judeia, Samaria e até os confins da terra.",
+      application: "A igreja hoje precisa trocar ansiedade por fidelidade: receber direção de Cristo, depender do Espírito e testemunhar onde Deus a colocou.",
+      connections: "Conecta-se com Lucas 24:49, Mateus 28:18-20 e com o movimento inteiro de Atos, que mostra o evangelho avançando por meio do Espírito."
     };
   }
 
   return {
     title: "Estudo guiado",
-    summary: "Para responder bem, observe o contexto imediato, o genero literario, o publico original e a ligacao do texto com Cristo e com a historia biblica.",
-    context: "Pergunte: quem escreveu, para quem, em que situacao e qual problema o texto responde?",
-    meaning: "Procure a ideia central antes de aplicar. Um versiculo raramente deve ser interpretado isolado do argumento do capítulo.",
-    application: "A aplicacao fiel nasce do significado correto: o texto deve formar adoracao, obediencia, arrependimento e esperanca.",
-    connections: "Compare com outros textos biblicos, mas sem forcar conexoes. A melhor conexao e aquela que respeita o contexto dos dois textos."
+    summary: "Para responder bem, observe o contexto imediato, o gênero literário, o público original e a ligação do texto com Cristo e com a história bíblica.",
+    context: "Pergunte: quem escreveu, para quem, em que situação e qual problema o texto responde?",
+    meaning: "Procure a ideia central antes de aplicar. Um versículo raramente deve ser interpretado isolado do argumento do capítulo.",
+    application: "A aplicação fiel nasce do significado correto: o texto deve formar adoração, obediência, arrependimento e esperança.",
+    connections: "Compare com outros textos bíblicos, mas sem forçar conexões. A melhor conexão é aquela que respeita o contexto dos dois textos."
   };
 }
 
