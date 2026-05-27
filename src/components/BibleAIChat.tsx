@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Send, Loader, MessageSquare, Sparkles } from 'lucide-react';
-import { perguntarIABiblica } from '@/lib/bibleAI';
+import { perguntarIABiblica, type MensagemHistorico } from '@/lib/bibleAI';
 
 interface Message {
   type: 'user' | 'ia';
@@ -27,12 +27,21 @@ export default function BibleAIChat() {
     // Adiciona pergunta do usuário
     const novasPergunta = pergunta;
     setPergunta('');
+
+    // Monta o histórico da conversa (exceto a saudação inicial) para dar memória à IA
+    const historico: MensagemHistorico[] = mensagens
+      .slice(1)
+      .map(msg => ({
+        role: msg.type === 'user' ? ('user' as const) : ('assistant' as const),
+        content: msg.texto
+      }));
+
     setMensagens(prev => [...prev, { type: 'user', texto: novasPergunta }]);
     setCarregando(true);
 
     try {
-      // Chama IA
-      const resposta = await perguntarIABiblica(novasPergunta);
+      // Chama IA com o histórico da conversa
+      const resposta = await perguntarIABiblica(novasPergunta, historico);
 
       // Adiciona resposta
       setMensagens(prev => [

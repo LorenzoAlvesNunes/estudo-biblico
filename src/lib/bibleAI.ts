@@ -170,12 +170,22 @@ Posso te ajudar com:
 
 O que você gostaria de explorar hoje na Palavra? 🕊️`;
 
+/** Mensagem do histórico de conversa enviada ao modelo. */
+export interface MensagemHistorico {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 /**
  * Pergunta à IA Bíblica
  * Chama o Groq direto do navegador (client-side) com contexto da Bíblia Explicada Completa.
  * Não precisa de backend - funciona em hospedagem estática.
+ * O parâmetro `historico` dá memória de conversa (lembra das mensagens anteriores).
  */
-export async function perguntarIABiblica(pergunta: string): Promise<string> {
+export async function perguntarIABiblica(
+  pergunta: string,
+  historico: MensagemHistorico[] = []
+): Promise<string> {
   // Saudações recebem uma apresentação calorosa (sem chamar a API)
   if (ehSaudacao(pergunta)) {
     return RESPOSTA_APRESENTACAO;
@@ -212,6 +222,8 @@ export async function perguntarIABiblica(pergunta: string): Promise<string> {
         max_tokens: 1024,
         messages: [
           { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+          // Histórico recente da conversa (até 8 últimas mensagens) para dar memória
+          ...historico.slice(-8),
           { role: 'user', content: userMessage }
         ]
       })
