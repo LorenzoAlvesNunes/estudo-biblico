@@ -15,6 +15,9 @@ import {
   GraduationCap,
   Home,
   Library,
+  Lightbulb,
+  ListChecks,
+  Loader,
   Lock,
   LogOut,
   Mail,
@@ -44,6 +47,13 @@ import {
   register
 } from "@/lib/userStore";
 import BibleAIChat from "@/components/BibleAIChat";
+import {
+  perguntarEstudoEstruturado,
+  explicarSimples,
+  gerarQuiz,
+  type EstudoEstruturado,
+  type QuizPergunta
+} from "@/lib/bibleAI";
 
 type AuthMode = "login" | "register" | "recover";
 type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "general" | "ranking" | "book-selector" | "bible-ai";
@@ -1285,54 +1295,253 @@ function BibleStudyCenter({
   setProgress: React.Dispatch<React.SetStateAction<UserProgress>>;
 }) {
   const [question, setQuestion] = useState("O que significa Atos 1:8?");
-  const answer = buildStudyAnswer(question);
+  const [estudo, setEstudo] = useState<EstudoEstruturado | null>(null);
+  const [carregando, setCarregando] = useState(false);
+  const [erro, setErro] = useState("");
+  const [simples, setSimples] = useState("");
+  const [carregandoSimples, setCarregandoSimples] = useState(false);
+  const [quiz, setQuiz] = useState<QuizPergunta[] | null>(null);
+  const [carregandoQuiz, setCarregandoQuiz] = useState(false);
+
+  const sugestoes = [
+    "O que significa a graça de Deus?",
+    "Quem era o apóstolo Paulo?",
+    "O que é o fruto do Espírito?",
+    "Qual o significado da parábola do filho pródigo?"
+  ];
+
+  async function estudar(texto?: string) {
+    const alvo = (texto ?? question).trim();
+    if (!alvo || carregando) return;
+    if (texto) setQuestion(texto);
+    setCarregando(true);
+    setErro("");
+    setEstudo(null);
+    setSimples("");
+    setQuiz(null);
+    try {
+      const resultado = await perguntarEstudoEstruturado(alvo);
+      setEstudo(resultado);
+      setProgress((current) => ({
+        ...current,
+        recentActivity: [`Estudou: ${alvo}`.slice(0, 56), ...current.recentActivity].slice(0, 6)
+      }));
+    } catch {
+      setErro("Não foi possível gerar o estudo agora. Tente novamente em instantes.");
+    } finally {
+      setCarregando(false);
+    }
+  }
+
+  async function explicar() {
+    if (!estudo || carregandoSimples) return;
+    setCarregandoSimples(true);
+    try {
+      const texto = await explicarSimples(`${estudo.summary} ${estudo.meaning} ${estudo.application}`);
+      setSimples(texto);
+    } catch {
+      setSimples("Não foi possível gerar a explicação simples agora.");
+    } finally {
+      setCarregandoSimples(false);
+    }
+  }
+
+  async function fazerQuiz() {
+    if (!estudo || carregandoQuiz) return;
+    setCarregandoQuiz(true);
+    try {
+      const perguntas = await gerarQuiz(estudo.title || question);
+      setQuiz(perguntas);
+    } catch {
+      setQuiz([]);
+    } finally {
+      setCarregandoQuiz(false);
+    }
+  }
 
   function saveAsNote() {
+    if (!estudo) return;
     const key = `study-question:${Date.now()}`;
     setProgress((current) => ({
       ...current,
-      notes: { ...current.notes, [key]: `${question}\n\n${answer.summary}` },
-      recentActivity: ["Estudou uma pergunta bíblica", ...current.recentActivity].slice(0, 6)
+      notes: { ...current.notes, [key]: `${question}\n\n${estudo.summary}` },
+      recentActivity: ["Salvou um estudo bíblico", ...current.recentActivity].slice(0, 6)
     }));
   }
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-6xl px-5 py-8">
-      <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
-        <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Estudo Biblico</p>
-        <h1 className="mt-3 text-4xl font-semibold leading-tight">Central de perguntas e explicacoes.</h1>
-        <p className="mt-3 max-w-2xl leading-7 text-white/52">Pesquise dúvidas, versículos, temas e contexto. As respostas são organizadas como material de estudo.</p>
-        <label className="mt-7 flex min-h-14 items-center gap-3 rounded-2xl border border-white/10 bg-[#0f0f11] px-4">
-          <Search size={18} className="text-white/38" />
-          <input value={question} onChange={(event) => setQuestion(event.target.value)} className="h-14 flex-1 bg-transparent outline-none" placeholder="Ex: O que significa Atos 1:8?" />
-        </label>
+      <section className="relative overflow-hidden rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
+        <div className="absolute -right-16 -top-16 h-48 w-48 rounded-full bg-gold-300/10 blur-3xl" />
+        <p className="flex items-center gap-2 text-sm uppercase tracking-[0.24em] text-gold-300/80">
+          <Sparkles size={15} /> Estudo Bíblico com IA
+        </p>
+        <h1 className="mt-3 text-4xl font-semibold leading-tight">Central de perguntas e explicações.</h1>
+        <p className="mt-3 max-w-2xl leading-7 text-white/52">Pergunte sobre qualquer dúvida, versículo, tema ou personagem. A IA monta um estudo completo: contexto, significado, aplicação e conexões.</p>
+        <div className="mt-7 flex flex-col gap-3 sm:flex-row">
+          <label className="flex min-h-14 flex-1 items-center gap-3 rounded-2xl border border-white/10 bg-[#0f0f11] px-4 transition focus-within:border-gold-300/45">
+            <Search size={18} className="text-white/38" />
+            <input
+              value={question}
+              onChange={(event) => setQuestion(event.target.value)}
+              onKeyDown={(event) => event.key === "Enter" && estudar()}
+              className="h-14 flex-1 bg-transparent outline-none"
+              placeholder="Ex: O que significa Atos 1:8?"
+            />
+          </label>
+          <button
+            onClick={() => estudar()}
+            disabled={carregando || !question.trim()}
+            className="inline-flex h-14 items-center justify-center gap-2 rounded-2xl bg-gold-300 px-6 font-semibold text-ink transition hover:brightness-110 disabled:opacity-50"
+          >
+            {carregando ? <Loader size={18} className="animate-spin" /> : <Sparkles size={18} />}
+            {carregando ? "Estudando..." : "Estudar"}
+          </button>
+        </div>
+        <div className="mt-4 flex flex-wrap gap-2">
+          {sugestoes.map((s) => (
+            <button
+              key={s}
+              onClick={() => estudar(s)}
+              disabled={carregando}
+              className="rounded-full border border-gold-300/30 bg-gold-300/5 px-3 py-1 text-xs text-white/64 transition hover:border-gold-300/60 hover:text-gold-300 disabled:opacity-40"
+            >
+              {s}
+            </button>
+          ))}
+        </div>
       </section>
 
-      <section className="mt-6 grid gap-4 lg:grid-cols-[1fr_320px]">
-        <div className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
-          <h2 className="text-2xl font-semibold">{answer.title}</h2>
-          <p className="mt-4 leading-8 text-white/66">{answer.summary}</p>
-          <div className="mt-6 grid gap-3 md:grid-cols-2">
-            <InfoBlock title="Contexto" text={answer.context} />
-            <InfoBlock title="Significado" text={answer.meaning} />
-            <InfoBlock title="Aplicacao" text={answer.application} />
-            <InfoBlock title="Conexões bíblicas" text={answer.connections} />
-          </div>
+      {erro && (
+        <div className="mt-6 rounded-2xl border border-red-400/30 bg-red-400/10 p-4 text-sm text-red-200">{erro}</div>
+      )}
+
+      {carregando && (
+        <div className="mt-6 grid place-items-center rounded-3xl border border-white/10 bg-[#101012]/72 p-12 shadow-soft">
+          <Loader size={28} className="animate-spin text-gold-300" />
+          <p className="mt-4 text-sm text-white/52">A IA está preparando seu estudo bíblico...</p>
         </div>
-        <aside className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-soft">
-          <h3 className="font-semibold">Salvar estudo</h3>
-          <p className="mt-2 text-sm leading-6 text-white/44">Guarde esta resposta como anotação pessoal para revisar depois.</p>
-          <button onClick={saveAsNote} className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-halo px-4 font-semibold text-ink">
-            <Bookmark size={16} />
-            Salvar nas notas
-          </button>
-          <div className="mt-6 border-t border-white/8 pt-5">
-            <p className="text-sm text-white/44">Notas salvas</p>
-            <p className="mt-2 text-3xl font-semibold">{Object.keys(progress.notes).length}</p>
+      )}
+
+      {estudo && !carregando && (
+        <section className="mt-6 grid gap-4 lg:grid-cols-[1fr_320px]">
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
+              <h2 className="text-2xl font-semibold">{estudo.title}</h2>
+              {estudo.summary && <p className="mt-4 leading-8 text-white/66">{estudo.summary}</p>}
+              <div className="mt-6 grid gap-3 md:grid-cols-2">
+                {estudo.context && <InfoBlock title="Contexto histórico" text={estudo.context} />}
+                {estudo.meaning && <InfoBlock title="Significado" text={estudo.meaning} />}
+                {estudo.application && <InfoBlock title="Aplicação prática" text={estudo.application} />}
+                {estudo.connections && <InfoBlock title="Conexões com Jesus" text={estudo.connections} />}
+              </div>
+              {estudo.verses.length > 0 && (
+                <div className="mt-6 border-t border-white/8 pt-5">
+                  <p className="text-sm text-white/44">Versículos para ler na sua Bíblia</p>
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {estudo.verses.map((v) => (
+                      <span key={v} className="rounded-full border border-gold-300/30 bg-gold-300/[0.06] px-3 py-1 text-sm text-gold-200">{v}</span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {simples && (
+              <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="rounded-3xl border border-gold-300/25 bg-gold-300/[0.05] p-6 shadow-soft">
+                <p className="flex items-center gap-2 font-semibold text-gold-200"><Lightbulb size={17} /> Explicação simples</p>
+                <p className="mt-3 leading-8 text-white/72 whitespace-pre-wrap">{simples}</p>
+              </motion.div>
+            )}
+
+            {quiz && <QuizBlock perguntas={quiz} />}
           </div>
-        </aside>
-      </section>
+
+          <aside className="space-y-4">
+            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-soft">
+              <h3 className="font-semibold">Ferramentas de estudo</h3>
+              <p className="mt-2 text-sm leading-6 text-white/44">Aprofunde o aprendizado deste tema.</p>
+              <button onClick={explicar} disabled={carregandoSimples} className="mt-5 flex w-full items-center justify-center gap-2 rounded-full border border-gold-300/30 bg-gold-300/[0.06] px-4 py-3 text-sm font-semibold text-gold-200 transition hover:border-gold-300/60 disabled:opacity-50">
+                {carregandoSimples ? <Loader size={16} className="animate-spin" /> : <Lightbulb size={16} />}
+                Explicar de forma simples
+              </button>
+              <button onClick={fazerQuiz} disabled={carregandoQuiz} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full border border-white/12 bg-white/[0.04] px-4 py-3 text-sm font-semibold text-white/78 transition hover:bg-white/[0.07] disabled:opacity-50">
+                {carregandoQuiz ? <Loader size={16} className="animate-spin" /> : <ListChecks size={16} />}
+                Gerar quiz deste tema
+              </button>
+              <button onClick={saveAsNote} className="mt-3 flex w-full items-center justify-center gap-2 rounded-full bg-halo px-4 py-3 text-sm font-semibold text-ink transition hover:brightness-95">
+                <Bookmark size={16} />
+                Salvar nas notas
+              </button>
+            </div>
+            <div className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-soft">
+              <p className="text-sm text-white/44">Notas salvas</p>
+              <p className="mt-2 text-3xl font-semibold">{Object.keys(progress.notes).length}</p>
+            </div>
+          </aside>
+        </section>
+      )}
     </motion.div>
+  );
+}
+
+function QuizBlock({ perguntas }: { perguntas: QuizPergunta[] }) {
+  const [respostas, setRespostas] = useState<Record<number, number>>({});
+
+  if (perguntas.length === 0) {
+    return (
+      <div className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 text-sm text-white/52 shadow-soft">
+        Não foi possível gerar o quiz agora. Tente novamente.
+      </div>
+    );
+  }
+
+  const acertos = perguntas.reduce((total, p, idx) => (respostas[idx] === p.correta ? total + 1 : total), 0);
+  const respondidas = Object.keys(respostas).length;
+
+  return (
+    <div className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
+      <div className="flex items-center justify-between">
+        <p className="flex items-center gap-2 text-lg font-semibold"><ListChecks size={18} className="text-gold-300" /> Quiz do tema</p>
+        {respondidas === perguntas.length && (
+          <span className="rounded-full bg-gold-300/15 px-3 py-1 text-sm font-semibold text-gold-200">{acertos}/{perguntas.length} acertos</span>
+        )}
+      </div>
+      <div className="mt-5 space-y-5">
+        {perguntas.map((p, idx) => {
+          const escolhida = respostas[idx];
+          const respondida = escolhida !== undefined;
+          return (
+            <div key={idx} className="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
+              <p className="font-medium">{idx + 1}. {p.pergunta}</p>
+              <div className="mt-3 grid gap-2">
+                {p.alternativas.map((alt, i) => {
+                  const correta = i === p.correta;
+                  const estaEscolhida = escolhida === i;
+                  let estilo = "border-white/10 bg-white/[0.03] text-white/72 hover:bg-white/[0.06]";
+                  if (respondida && correta) estilo = "border-green-400/40 bg-green-400/10 text-green-200";
+                  else if (respondida && estaEscolhida && !correta) estilo = "border-red-400/40 bg-red-400/10 text-red-200";
+                  return (
+                    <button
+                      key={i}
+                      onClick={() => !respondida && setRespostas((r) => ({ ...r, [idx]: i }))}
+                      disabled={respondida}
+                      className={`flex items-center gap-2 rounded-xl border px-4 py-2 text-left text-sm transition ${estilo}`}
+                    >
+                      {respondida && correta && <Check size={15} />}
+                      {alt}
+                    </button>
+                  );
+                })}
+              </div>
+              {respondida && (
+                <p className="mt-3 rounded-xl bg-white/[0.03] p-3 text-sm leading-6 text-white/60">{p.explicacao}</p>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

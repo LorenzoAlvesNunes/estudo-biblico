@@ -268,6 +268,217 @@ export async function perguntarIABiblica(
 }
 
 /**
+ * Helper de baixo nível: chama o Groq e retorna o texto da resposta.
+ * Aceita opção de forçar resposta em JSON.
+ */
+async function chamarGroq(
+  messages: { role: string; content: string }[],
+  opcoes: { json?: boolean; maxTokens?: number } = {}
+): Promise<string> {
+  if (!GROQ_API_KEY) {
+    throw new Error('CHAVE_AUSENTE');
+  }
+
+  const body: Record<string, unknown> = {
+    model: GROQ_MODEL,
+    max_tokens: opcoes.maxTokens ?? 1024,
+    messages
+  };
+  if (opcoes.json) {
+    body.response_format = { type: 'json_object' };
+  }
+
+  const response = await fetch(GROQ_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${GROQ_API_KEY}`
+    },
+    body: JSON.stringify(body)
+  });
+
+  if (!response.ok) {
+    const detalhe = await response.text();
+    console.error('Erro da Groq API:', detalhe);
+    throw new Error(`Erro na API: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.choices?.[0]?.message?.content || '';
+}
+
+/** Resposta de estudo estruturada em blocos didáticos. */
+export interface EstudoEstruturado {
+  title: string;
+  summary: string;
+  context: string;
+  meaning: string;
+  application: string;
+  connections: string;
+  verses: string[];
+}
+
+/**
+ * Gera um estudo bíblico estruturado (contexto, significado, aplicação, conexões)
+ * usando a IA real. Retorna JSON pronto para exibir em blocos.
+ */
+export async function perguntarEstudoEstruturado(pergunta: string): Promise<EstudoEstruturado> {
+  const validacao = validarPerguntaBiblica(pergunta);
+  if (!validacao.valida) {
+    return {
+      title: 'Pergunta fora do escopo',
+      summary: validacao.motivo || 'Tente perguntar sobre um tema bíblico.',
+      context: '', meaning: '', application: '', connections: '', verses: []
+    };
+  }
+
+  const versiculos = await carregarVersiculos();
+  const relevantes = buscarVersiculosRelevantes(pergunta, versiculos, 5);
+  const contexto = formatarContextoBiblico(relevantes);
+
+  const prompt = `${contexto ? `${contexto}\n\n` : ''}Pergunta de estudo: "${pergunta}"
+
+Responda APENAS com um objeto JSON válido, em português, com esta estrutura exata:
+{
+  "title": "título curto e claro do estudo",
+  "summary": "resumo pastoral de 2-3 frases sobre o tema",
+  "context": "contexto histórico e cultural (mundo antigo, situação original)",
+  "meaning": "significado teológico e espiritual da passagem/tema",
+  "application": "aplicação prática para a vida cristã hoje",
+  "connections": "conexões com outras passagens e com Jesus Cristo",
+  "verses": ["Referência 1", "Referência 2", "Referência 3"]
+}
+
+Seja profundo, fiel à Bíblia e didático. Não escreva nada fora do JSON.`;
+
+  const conteudo = await chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      { role: 'user', content: prompt }
+    ],
+    { json: true, maxTokens: 1500 }
+  );
+
+  try {
+    const parsed = JSON.parse(conteudo) as Partial<EstudoEstruturado>;
+    return {
+      title: parsed.title || pergunta,
+      summary: parsed.summary || '',
+      context: parsed.context || '',
+      meaning: parsed.meaning || '',
+      application: parsed.application || '',
+      connections: parsed.connections || '',
+      verses: Array.isArray(parsed.verses) ? parsed.verses : relevantes.map((v) => v.referencia)
+    };
+  } catch {
+    // Se o JSON vier malformado, devolve o texto bruto no resumo
+    return {
+      title: pergunta,
+      summary: conteudo || 'Não foi possível gerar o estudo.',
+      context: '', meaning: '', application: '', connections: '',
+      verses: relevantes.map((v) => v.referencia)
+    };
+  }
+}
+
+/**
+ * Reescreve um texto bíblico de forma bem simples ("como se tivesse 12 anos").
+ */
+export async function explicarSimples(textoOriginal: string): Promise<string> {
+  return chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      {
+        role: 'user',
+        content: `Reescreva a explicação abaixo de forma MUITO simples e curta, como se estivesse explicando para uma criança de 12 anos, usando linguagem fácil e exemplos do dia a dia, mas mantendo a fidelidade bíblica:\n\n"${textoOriginal}"`
+      }
+    ],
+    { maxTokens: 600 }
+  );
+}
+
+/** Uma pergunta de quiz com alternativas. */
+export interface QuizPergunta {
+  pergunta: string;
+  alternativas: string[];
+  correta: number;
+  explicacao: string;
+}
+
+/**
+ * Gera um quiz de múltipla escolha sobre um tema bíblico.
+ */
+export async function gerarQuiz(tema: string): Promise<QuizPergunta[]> {
+  const conteudo = await chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      {
+        role: 'user',
+        content: `Crie um quiz com 4 perguntas de múltipla escolha sobre o tema bíblico: "${tema}".
+Responda APENAS com um objeto JSON válido neste formato:
+{
+  "perguntas": [
+    {
+      "pergunta": "texto da pergunta",
+      "alternativas": ["opção A", "opção B", "opção C", "opção D"],
+      "correta": 0,
+      "explicacao": "por que essa é a resposta correta, com base bíblica"
+    }
+  ]
+}
+"correta" é o índice (0 a 3) da alternativa certa. Em português. Nada fora do JSON.`
+      }
+    ],
+    { json: true, maxTokens: 1500 }
+  );
+
+  try {
+    const parsed = JSON.parse(conteudo) as { perguntas?: QuizPergunta[] };
+    return Array.isArray(parsed.perguntas) ? parsed.perguntas : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Um dia dentro de um plano de estudo. */
+export interface DiaPlano {
+  dia: number;
+  titulo: string;
+  leitura: string;
+  foco: string;
+}
+
+/**
+ * Gera um plano de estudo guiado (roteiro de dias) sobre um tema ou livro.
+ */
+export async function gerarPlanoEstudo(tema: string, dias = 7): Promise<DiaPlano[]> {
+  const conteudo = await chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      {
+        role: 'user',
+        content: `Monte um plano de estudo bíblico de ${dias} dias sobre: "${tema}".
+Responda APENAS com um objeto JSON válido neste formato:
+{
+  "dias": [
+    { "dia": 1, "titulo": "título do dia", "leitura": "passagem a ler (ex: João 1)", "foco": "o que observar e refletir" }
+  ]
+}
+Em português. ${dias} dias. Nada fora do JSON.`
+      }
+    ],
+    { json: true, maxTokens: 1500 }
+  );
+
+  try {
+    const parsed = JSON.parse(conteudo) as { dias?: DiaPlano[] };
+    return Array.isArray(parsed.dias) ? parsed.dias : [];
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Sistema de prompt RIGOROSO para IA Bíblica 100% focada em Bíblia
  */
 export const SYSTEM_PROMPT_BIBLIA = `🙏 VOCÊ É UMA IA BÍBLICA PURA E RIGOROSA
