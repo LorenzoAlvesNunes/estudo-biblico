@@ -166,7 +166,16 @@ export function BiblePlatform() {
 
   useEffect(() => {
     if (!("serviceWorker" in navigator)) return;
-    navigator.serviceWorker.register(`${basePath}/sw.js`).catch(() => undefined);
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener("controllerchange", () => {
+      if (refreshing) return;
+      refreshing = true;
+      window.location.reload();
+    });
+    navigator.serviceWorker
+      .register(`${basePath}/sw.js`)
+      .then((registration) => registration.update())
+      .catch(() => undefined);
   }, []);
 
   useEffect(() => {
