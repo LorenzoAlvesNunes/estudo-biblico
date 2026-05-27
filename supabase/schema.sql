@@ -1,98 +1,95 @@
-create schema if not exists bible_app;
-
-grant usage on schema bible_app to anon, authenticated;
-
-create table if not exists bible_app.profiles (
-  id uuid primary key references auth.users(id) on delete cascade,
-  email text not null,
-  name text,
-  created_at timestamptz default now()
+-- Tabela de usuários
+CREATE TABLE IF NOT EXISTS users (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  email VARCHAR(255) UNIQUE NOT NULL,
+  password VARCHAR(255) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 
-create table if not exists bible_app.study_progress (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  payload jsonb not null default '{}'::jsonb,
-  updated_at timestamptz default now()
+-- Tabela de progresso do usuário
+CREATE TABLE IF NOT EXISTS user_progress (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  xp INTEGER DEFAULT 0,
+  level INTEGER DEFAULT 1,
+  streak INTEGER DEFAULT 0,
+  studied_minutes INTEGER DEFAULT 0,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id)
 );
 
-create table if not exists bible_app.study_notes (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  note_key text not null,
-  book_id text,
-  chapter integer,
-  content text not null,
-  updated_at timestamptz default now(),
-  unique (user_id, note_key)
+-- Tabela de capítulos completados
+CREATE TABLE IF NOT EXISTS completed_chapters (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  book_id VARCHAR(255) NOT NULL,
+  chapter INTEGER NOT NULL,
+  completed_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, book_id, chapter)
 );
 
-create table if not exists bible_app.quizzes (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  book_id text,
-  chapter integer,
-  score integer not null default 0,
-  answers jsonb not null default '[]'::jsonb,
-  created_at timestamptz default now()
+-- Tabela de anotações
+CREATE TABLE IF NOT EXISTS study_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  note_key VARCHAR(255) NOT NULL,
+  content TEXT,
+  created_at TIMESTAMP DEFAULT NOW(),
+  updated_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, note_key)
 );
 
-create table if not exists bible_app.sermons (
-  id text primary key,
-  user_id uuid not null references auth.users(id) on delete cascade,
-  title text,
-  theme text,
-  verse text,
-  intro text,
-  topics text,
-  conclusion text,
-  application text,
-  updated_at timestamptz default now()
+-- Tabela de versículos favoritos
+CREATE TABLE IF NOT EXISTS favorites (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  verse_ref VARCHAR(255) NOT NULL,
+  added_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, verse_ref)
 );
 
-create table if not exists bible_app.favorites (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  book_id text,
-  chapter integer,
-  verse_ref text,
-  created_at timestamptz default now(),
-  unique (user_id, verse_ref)
+-- Tabela de sermões
+CREATE TABLE IF NOT EXISTS sermons (
+  id VARCHAR(255) PRIMARY KEY,
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title VARCHAR(255),
+  theme VARCHAR(255),
+  verse VARCHAR(255),
+  intro TEXT,
+  topics TEXT,
+  conclusion TEXT,
+  application TEXT,
+  updated_at TIMESTAMP DEFAULT NOW()
 );
 
-create table if not exists bible_app.devotional_history (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  devotional_date date not null default current_date,
-  reflection text,
-  prayer text,
-  created_at timestamptz default now()
+-- Tabela de quizzes respondidos
+CREATE TABLE IF NOT EXISTS quiz_scores (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  book_id VARCHAR(255) NOT NULL,
+  chapter INTEGER NOT NULL,
+  score INTEGER NOT NULL,
+  completed_at TIMESTAMP DEFAULT NOW()
 );
 
-create table if not exists bible_app.completed_chapters (
-  user_id uuid not null references auth.users(id) on delete cascade,
-  book_id text not null,
-  chapter integer not null,
-  completed_at timestamptz default now(),
-  primary key (user_id, book_id, chapter)
+-- Tabela de exames completados
+CREATE TABLE IF NOT EXISTS completed_exams (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  exam_id VARCHAR(255) NOT NULL,
+  completed_at TIMESTAMP DEFAULT NOW(),
+  UNIQUE(user_id, exam_id)
 );
 
-alter table bible_app.profiles enable row level security;
-alter table bible_app.study_progress enable row level security;
-alter table bible_app.study_notes enable row level security;
-alter table bible_app.quizzes enable row level security;
-alter table bible_app.sermons enable row level security;
-alter table bible_app.favorites enable row level security;
-alter table bible_app.devotional_history enable row level security;
-alter table bible_app.completed_chapters enable row level security;
-
-create policy "own profile" on bible_app.profiles for all using (auth.uid() = id) with check (auth.uid() = id);
-create policy "own study progress" on bible_app.study_progress for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own notes" on bible_app.study_notes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own quizzes" on bible_app.quizzes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own sermons" on bible_app.sermons for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own favorites" on bible_app.favorites for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own devotionals" on bible_app.devotional_history for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "own completed chapters" on bible_app.completed_chapters for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-
-grant select, insert, update, delete on all tables in schema bible_app to authenticated;
-grant usage on all sequences in schema bible_app to authenticated;
+-- Tabela de atividade recente
+CREATE TABLE IF NOT EXISTS recent_activity (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  activity VARCHAR(255) NOT NULL,
+  book_id VARCHAR(255),
+  chapter INTEGER,
+  created_at TIMESTAMP DEFAULT NOW()
+);

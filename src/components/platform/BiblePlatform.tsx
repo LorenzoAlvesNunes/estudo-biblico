@@ -374,6 +374,7 @@ function Input({
 }
 
 function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: AppView; onNavigate: (view: AppView) => void; onLogout: () => void }) {
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navItems = [
     { id: "dashboard" as const, label: "Inicio", icon: Home },
     { id: "study" as const, label: "Curso", icon: Library },
@@ -384,8 +385,13 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
     { id: "book-selector" as const, label: "Livro", icon: BookOpen }
   ];
 
+  const handleNavClick = (id: AppView) => {
+    onNavigate(id);
+    setMobileMenuOpen(false);
+  };
+
   return (
-    <header className="sticky top-0 z-40 border-b border-white/8 bg-[#08080a]/82 px-4 backdrop-blur-2xl">
+    <header className="sticky top-0 z-50 border-b border-white/8 bg-[#08080a]/82 px-4 backdrop-blur-2xl">
       <div className="mx-auto flex h-16 max-w-[1600px] items-center justify-between gap-3">
         <button onClick={() => onNavigate("dashboard")} className="flex items-center gap-3">
           <span className="grid h-9 w-9 place-items-center rounded-xl border border-gold-300/25 bg-gold-300/10 text-gold-300">
@@ -411,8 +417,32 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
           <button onClick={onLogout} title="Sair" className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white">
             <LogOut size={16} />
           </button>
+          <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} title="Menu" className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white md:hidden">
+            <Menu size={16} />
+          </button>
         </div>
       </div>
+
+      {mobileMenuOpen && (
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} className="border-t border-white/8 bg-[#08080a]/95 px-4 py-3">
+          <div className="grid gap-2">
+            {navItems.map((item) => (
+              <button
+                key={item.id}
+                onClick={() => handleNavClick(item.id)}
+                className={`flex h-10 items-center gap-3 rounded-lg px-3 text-sm transition ${view === item.id ? "bg-white/10 text-halo" : "text-white/64 hover:text-white"}`}
+              >
+                <item.icon size={16} />
+                {item.label}
+              </button>
+            ))}
+            <button onClick={() => { onLogout(); setMobileMenuOpen(false); }} className="mt-2 flex h-10 items-center gap-3 rounded-lg border-t border-white/8 px-3 text-sm text-white/64 transition hover:text-white">
+              <LogOut size={16} />
+              Sair
+            </button>
+          </div>
+        </motion.div>
+      )}
     </header>
   );
 }
