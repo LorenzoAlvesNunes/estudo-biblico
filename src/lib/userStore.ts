@@ -102,7 +102,6 @@ export async function loadUserProgress(user: AppUser): Promise<UserProgress> {
   if (!supabase || user.provider !== "supabase") return localProgress;
 
   const { data, error } = await supabase
-    .schema("bible_app")
     .from("study_progress")
     .select("payload")
     .eq("user_id", user.id)
@@ -123,7 +122,7 @@ export async function loadUserProgress(user: AppUser): Promise<UserProgress> {
 async function ensureProfile(user: AppUser) {
   if (!supabase || user.provider !== "supabase") return;
 
-  await supabase.schema("bible_app").from("profiles").upsert({
+  await supabase.from("profiles").upsert({
     id: user.id,
     email: user.email,
     name: user.name
@@ -135,7 +134,7 @@ export async function persistProgress(user: AppUser, progress: UserProgress) {
 
   if (!supabase || user.provider !== "supabase") return;
 
-  const { error } = await supabase.schema("bible_app").from("study_progress").upsert({
+  const { error } = await supabase.from("study_progress").upsert({
     user_id: user.id,
     payload: progress,
     updated_at: new Date().toISOString()
@@ -187,16 +186,16 @@ async function persistDerivedTables(user: AppUser, progress: UserProgress) {
 
   await Promise.all([
     completedRows.length
-      ? supabase.schema("bible_app").from("completed_chapters").upsert(completedRows, { onConflict: "user_id,book_id,chapter" })
+      ? supabase.from("completed_chapters").upsert(completedRows, { onConflict: "user_id,book_id,chapter" })
       : Promise.resolve(),
     noteRows.length
-      ? supabase.schema("bible_app").from("study_notes").upsert(noteRows, { onConflict: "user_id,note_key" })
+      ? supabase.from("study_notes").upsert(noteRows, { onConflict: "user_id,note_key" })
       : Promise.resolve(),
     favoriteRows.length
-      ? supabase.schema("bible_app").from("favorites").upsert(favoriteRows, { onConflict: "user_id,verse_ref" })
+      ? supabase.from("favorites").upsert(favoriteRows, { onConflict: "user_id,verse_ref" })
       : Promise.resolve(),
     sermonRows.length
-      ? supabase.schema("bible_app").from("sermons").upsert(sermonRows, { onConflict: "id" })
+      ? supabase.from("sermons").upsert(sermonRows, { onConflict: "id" })
       : Promise.resolve()
   ]);
 }
