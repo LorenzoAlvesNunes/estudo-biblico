@@ -74,36 +74,36 @@ type BibleBook = (typeof books)[number] & {
 type SermonDraft = UserProgress["sermons"][number];
 
 const chapterCounts: Record<string, number> = {
-  Gênesis: 50,
-  Êxodo: 40,
-  Levítico: 27,
-  Números: 36,
-  Deuteronômio: 34,
-  Josué: 24,
-  Juízes: 21,
+  Genesis: 50,
+  Exodo: 40,
+  Levitico: 27,
+  Numeros: 36,
+  Deuteronomio: 34,
+  Josue: 24,
+  Juizes: 21,
   Rute: 4,
   "1 Samuel": 31,
   "2 Samuel": 24,
   "1 Reis": 22,
   "2 Reis": 25,
-  "1 Crônicas": 29,
-  "2 Crônicas": 36,
+  "1 Cronicas": 29,
+  "2 Cronicas": 36,
   Esdras: 10,
   Neemias: 13,
   Ester: 10,
-  Jó: 42,
+  Jo: 42,
   Salmos: 150,
-  Provérbios: 31,
+  Proverbios: 31,
   Eclesiastes: 12,
-  Câncio dos Cânticos: 8,
-  Isaías: 66,
+  Cantares: 8,
+  Isaias: 66,
   Jeremias: 52,
-  Lamentações: 5,
+  Lamentacoes: 5,
   Ezequiel: 48,
   Daniel: 12,
-  Oséias: 14,
+  Oseias: 14,
   Joel: 3,
-  Amós: 9,
+  Amos: 9,
   Obadias: 1,
   Jonas: 4,
   Miqueias: 7,
@@ -116,31 +116,66 @@ const chapterCounts: Record<string, number> = {
   Mateus: 28,
   Marcos: 16,
   Lucas: 24,
-  João: 21,
+  Joao: 21,
   Atos: 28,
   Romanos: 16,
-  "1 Coríntios": 16,
-  "2 Coríntios": 13,
-  Gálatas: 6,
-  Efésios: 6,
+  "1 Corintios": 16,
+  "2 Corintios": 13,
+  Galatas: 6,
+  Efesios: 6,
   Filipenses: 4,
   Colossenses: 4,
   "1 Tessalonicenses": 5,
   "2 Tessalonicenses": 3,
-  "1 Timóteo": 6,
-  "2 Timóteo": 4,
+  "1 Timoteo": 6,
+  "2 Timoteo": 4,
   Tito: 3,
   Filemom: 1,
   Hebreus: 13,
   Tiago: 5,
   "1 Pedro": 5,
   "2 Pedro": 3,
-  "1 João": 5,
-  "2 João": 1,
-  "3 João": 1,
+  "1 Joao": 5,
+  "2 Joao": 1,
+  "3 Joao": 1,
   Judas: 1,
   Apocalipse: 22
 };
+
+// Mapa de nomes com acentuação correta para exibição na interface.
+// As chaves internas (ids, lookups) permanecem sem acento por compatibilidade.
+const nomesLivrosDisplay: Record<string, string> = {
+  Genesis: "Gênesis",
+  Exodo: "Êxodo",
+  Levitico: "Levítico",
+  Numeros: "Números",
+  Deuteronomio: "Deuteronômio",
+  Josue: "Josué",
+  Juizes: "Juízes",
+  "1 Cronicas": "1 Crônicas",
+  "2 Cronicas": "2 Crônicas",
+  Jo: "Jó",
+  Proverbios: "Provérbios",
+  Cantares: "Cantares",
+  Isaias: "Isaías",
+  Lamentacoes: "Lamentações",
+  Oseias: "Oséias",
+  Amos: "Amós",
+  Joao: "João",
+  "1 Corintios": "1 Coríntios",
+  "2 Corintios": "2 Coríntios",
+  Galatas: "Gálatas",
+  Efesios: "Efésios",
+  "1 Timoteo": "1 Timóteo",
+  "2 Timoteo": "2 Timóteo",
+  "1 Joao": "1 João",
+  "2 Joao": "2 João",
+  "3 Joao": "3 João"
+};
+
+function nomeLivro(nome: string): string {
+  return nomesLivrosDisplay[nome] ?? nome;
+}
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
 
@@ -555,7 +590,7 @@ function BookGroup({
             <button key={book.id} onClick={() => onOpenStudy(book, Math.min(done + 1, total))} className="group rounded-2xl border border-white/9 bg-white/[0.03] p-4 text-left transition hover:-translate-y-0.5 hover:border-gold-300/28 hover:bg-white/[0.055]">
               <div className="flex items-start justify-between gap-3">
                 <div>
-                  <h3 className="font-semibold text-halo">{book.name}</h3>
+                  <h3 className="font-semibold text-halo">{nomeLivro(book.name)}</h3>
                   <p className="mt-1 text-sm text-white/42">{book.category}</p>
                 </div>
                 <span className="text-xs text-gold-300/80">{Math.round((done / total) * 100)}%</span>
@@ -757,7 +792,7 @@ function BookSelectorView({ onOpenStudy, progress }: { onOpenStudy: (book: Bible
                     onClick={() => onOpenStudy(book, 1)}
                     className="group rounded-2xl border border-white/8 bg-white/[0.025] p-4 text-left transition hover:bg-white/[0.05] hover:border-gold-300/30"
                   >
-                    <h3 className="font-semibold group-hover:text-gold-300 transition">{book.name}</h3>
+                    <h3 className="font-semibold group-hover:text-gold-300 transition">{nomeLivro(book.name)}</h3>
                     <p className="mt-1 text-xs text-white/42">{total} capítulos</p>
                     <div className="mt-3 h-1.5 w-full rounded-full bg-white/8">
                       <div className="h-full rounded-full bg-gold-300 transition" style={{ width: `${percent}%` }} />
@@ -870,7 +905,7 @@ function StudyWorkspace({
           </button>
 
           <div className="mb-8 rounded-3xl border border-white/10 bg-white/[0.03] p-5">
-            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Curso de {book.name}</p>
+            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Curso de {nomeLivro(book.name)}</p>
             <div className="mt-4 grid gap-3 sm:grid-cols-3">
               <MiniStep label="1. Estudar" active />
               <MiniStep label="2. Quiz" active={isRead} />
@@ -879,7 +914,7 @@ function StudyWorkspace({
           </div>
 
           <div className="mb-8">
-            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">{book.name}</p>
+            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">{nomeLivro(book.name)}</p>
             <h1 className="mt-3 text-4xl font-semibold leading-tight sm:text-5xl">Capitulo {chapter}</h1>
             <p className="mt-4 leading-7 text-white/58">{buildChapterIntro(book, chapter)}</p>
           </div>
@@ -948,7 +983,7 @@ function StudySidebar({
       </button>
       <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-4">
         <p className="text-xs uppercase tracking-[0.22em] text-gold-300/75">{book.category}</p>
-        <h2 className="mt-2 text-2xl font-semibold">{book.name}</h2>
+        <h2 className="mt-2 text-2xl font-semibold">{nomeLivro(book.name)}</h2>
         <p className="mt-2 text-sm leading-6 text-white/50">Capitulo atual: {chapter}</p>
         <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-white/8">
           <div className="h-full rounded-full bg-gold-300/85" style={{ width: `${percent}%` }} />
@@ -1004,7 +1039,7 @@ function ReadingCard({
       <div className="flex items-start justify-between gap-4">
         <div>
           <p className="text-sm text-white/42">Leitura bíblica</p>
-          <h2 className="mt-1 text-2xl font-semibold">{book.name} {chapter}</h2>
+          <h2 className="mt-1 text-2xl font-semibold">{nomeLivro(book.name)} {chapter}</h2>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setFontSize(Math.max(16, fontSize - 1))} title="Diminuir fonte" className="grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white">
@@ -1024,7 +1059,7 @@ function ReadingCard({
       </div>
       <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
         <p className="text-sm text-white/64">
-          📖 Abra sua Bíblia física em <strong className="text-gold-300">{book.name} {chapter}</strong> para ler o capítulo completo.
+          📖 Abra sua Bíblia física em <strong className="text-gold-300">{nomeLivro(book.name)} {chapter}</strong> para ler o capítulo completo.
         </p>
       </div>
     </section>
@@ -1093,7 +1128,7 @@ function ExamPanel({
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm uppercase tracking-[0.2em] text-gold-300/70">Prova final</p>
-          <h3 className="mt-2 text-lg font-semibold">{book.name} {start}-{end}</h3>
+          <h3 className="mt-2 text-lg font-semibold">{nomeLivro(book.name)} {start}-{end}</h3>
           <p className="mt-2 text-sm leading-6 text-white/48">
             {unlocked ? "Prova liberada para revisar interpretação, contexto e aplicação." : `Conclua ${end - start + 1 - completedInRange} capítulo(s) deste bloco para liberar.`}
           </p>
@@ -1203,7 +1238,7 @@ function QuizModal({
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="text-sm uppercase tracking-[0.2em] text-gold-300/70">Quiz rapido</p>
-                <h2 className="mt-2 text-2xl font-semibold">{book.name} {chapter}</h2>
+                <h2 className="mt-2 text-2xl font-semibold">{nomeLivro(book.name)} {chapter}</h2>
               </div>
               <button onClick={onClose} className="grid h-9 w-9 place-items-center rounded-full border border-white/10 text-white/48 transition hover:text-white">
                 <X size={17} />

@@ -37,6 +37,7 @@ jobs:
           NEXT_PUBLIC_SITE_URL: https://lorenzoalvesnunes.github.io/estudo-biblico
           NEXT_PUBLIC_SUPABASE_URL: https://mxdcydeyizvyxgpaqxzj.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: sb_publishable_IPTU6x-jUATowknlH0lB_w_oq6g7yr8
+          NEXT_PUBLIC_GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

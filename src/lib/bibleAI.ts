@@ -129,9 +129,16 @@ export function validarPerguntaBiblica(pergunta: string): { valida: boolean; mot
   return { valida: true };
 }
 
+// Chave do Groq exposta no cliente (Groq é gratuito - sem risco de custo).
+// Funciona em hospedagem estatica (GitHub Pages) sem precisar de backend.
+const GROQ_API_KEY = process.env.NEXT_PUBLIC_GROQ_API_KEY || '';
+const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
+const GROQ_MODEL = 'llama-3.3-70b-versatile';
+
 /**
  * Pergunta à IA Bíblica
- * Usa Groq com contexto da Bíblia Explicada Completa
+ * Chama o Groq direto do navegador (client-side) com contexto da Bíblia Explicada Completa.
+ * Não precisa de backend - funciona em hospedagem estática.
  */
 export async function perguntarIABiblica(pergunta: string): Promise<string> {
   // Valida se pergunta é sobre Bíblia
@@ -139,33 +146,55 @@ export async function perguntarIABiblica(pergunta: string): Promise<string> {
   if (!validacao.valida) {
     return validacao.motivo || '❌ Pergunta fora do escopo bíblico.';
   }
+
+  if (!GROQ_API_KEY) {
+    return '⚠️ A IA Bíblica ainda não está configurada (chave de API ausente). Avise o administrador.';
+  }
+
   try {
-    // Carrega versículos
+    // Carrega versículos e busca os mais relevantes
     const versiculos = await carregarVersiculos();
-
-    // Busca versículos relevantes
     const relevantes = buscarVersiculosRelevantes(pergunta, versiculos, 5);
-
-    // Formata contexto
     const contexto = formatarContextoBiblico(relevantes);
 
-    // Chama Claude via API
-    const response = await fetch('/api/bible-ai', {
+    // Monta a mensagem do usuário com o contexto bíblico encontrado
+    const userMessage = `${contexto ? `Contexto bíblico:\n${contexto}\n\n` : ''}Pergunta do usuário: ${pergunta}\n\nPor favor, responda de forma pastoral, teológica e prática, citando versículos específicos quando apropriado.`;
+
+    // Chama o Groq diretamente do navegador
+    const response = await fetch(GROQ_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${GROQ_API_KEY}`
+      },
       body: JSON.stringify({
-        pergunta,
-        contexto,
-        versiculosRelevantes: relevantes
+        model: GROQ_MODEL,
+        max_tokens: 1024,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+          { role: 'user', content: userMessage }
+        ]
       })
     });
 
     if (!response.ok) {
+      const detalhe = await response.text();
+      console.error('Erro da Groq API:', detalhe);
       throw new Error(`Erro na API: ${response.status}`);
     }
 
     const data = await response.json();
-    return data.resposta;
+    let resposta: string = data.choices?.[0]?.message?.content || 'Não foi possível gerar resposta.';
+
+    // Acrescenta os versículos relacionados no final
+    if (relevantes.length > 0) {
+      resposta += `\n\n### Versículos Relacionados:\n`;
+      relevantes.forEach((v) => {
+        resposta += `- **${v.referencia}** (${v.palavra_chave})\n`;
+      });
+    }
+
+    return resposta;
   } catch (error) {
     console.error('Erro na IA Bíblica:', error);
     throw error;
