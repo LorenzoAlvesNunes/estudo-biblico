@@ -478,6 +478,97 @@ Em português. ${dias} dias. Nada fora do JSON.`
   }
 }
 
+/** Conforto bíblico para um sentimento/situação. */
+export interface ConfortoMomento {
+  mensagem: string;
+  versiculos: { referencia: string; texto: string }[];
+  oracao: string;
+}
+
+/**
+ * Dado um sentimento (triste, ansioso, com medo...), retorna palavra de
+ * conforto, versículos relevantes e uma oração curta.
+ */
+export async function versiculosParaMomento(sentimento: string): Promise<ConfortoMomento> {
+  const conteudo = await chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      {
+        role: 'user',
+        content: `Uma pessoa está se sentindo: "${sentimento}".
+Responda APENAS com um objeto JSON válido:
+{
+  "mensagem": "palavra pastoral de conforto e esperança (2-3 frases), acolhedora e centrada em Deus",
+  "versiculos": [ {"referencia": "Salmos 34:18", "texto": "texto curto do versículo"} ],
+  "oracao": "uma oração curta (2-3 frases) que a pessoa pode fazer neste momento"
+}
+Inclua de 3 a 4 versículos realmente relevantes para esse sentimento. Em português. Nada fora do JSON.`
+      }
+    ],
+    { json: true, maxTokens: 1200 }
+  );
+  try {
+    const p = JSON.parse(conteudo) as Partial<ConfortoMomento>;
+    return {
+      mensagem: p.mensagem || '',
+      versiculos: Array.isArray(p.versiculos) ? p.versiculos : [],
+      oracao: p.oracao || ''
+    };
+  } catch {
+    return { mensagem: conteudo || '', versiculos: [], oracao: '' };
+  }
+}
+
+/**
+ * Gera uma oração cristã e bíblica sobre um pedido/necessidade.
+ */
+export async function gerarOracao(pedido: string): Promise<string> {
+  return chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      {
+        role: 'user',
+        content: `Escreva uma oração cristã, sincera e bíblica, sobre: "${pedido}".
+Deve ser em primeira pessoa, calorosa, com 4 a 6 frases, terminando com "Em nome de Jesus, amém."`
+      }
+    ],
+    { maxTokens: 600 }
+  );
+}
+
+/** Versículo do dia com reflexão. */
+export interface VersiculoDia {
+  referencia: string;
+  texto: string;
+  reflexao: string;
+}
+
+/**
+ * Retorna um versículo inspirador do dia com uma reflexão devocional.
+ */
+export async function versiculoDoDia(): Promise<VersiculoDia> {
+  const hoje = new Date().toLocaleDateString('pt-BR');
+  const conteudo = await chamarGroq(
+    [
+      { role: 'system', content: SYSTEM_PROMPT_BIBLIA },
+      {
+        role: 'user',
+        content: `Escolha um versículo bíblico inspirador para o dia ${hoje}.
+Responda APENAS com um objeto JSON válido:
+{ "referencia": "...", "texto": "texto do versículo", "reflexao": "reflexão devocional curta de 2-3 frases sobre como viver isso hoje" }
+Varie o versículo conforme a data. Em português. Nada fora do JSON.`
+      }
+    ],
+    { json: true, maxTokens: 600 }
+  );
+  try {
+    const p = JSON.parse(conteudo) as Partial<VersiculoDia>;
+    return { referencia: p.referencia || '', texto: p.texto || '', reflexao: p.reflexao || '' };
+  } catch {
+    return { referencia: '', texto: conteudo || '', reflexao: '' };
+  }
+}
+
 /**
  * Sistema de prompt RIGOROSO para IA Bíblica 100% focada em Bíblia
  */

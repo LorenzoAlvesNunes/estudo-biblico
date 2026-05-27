@@ -13,11 +13,14 @@ import {
   FileText,
   Flame,
   GraduationCap,
+  HandHeart,
+  Heart,
   Home,
   Library,
   Lightbulb,
   ListChecks,
   Loader,
+  Sparkle,
   Lock,
   LogOut,
   Mail,
@@ -51,12 +54,19 @@ import {
   perguntarEstudoEstruturado,
   explicarSimples,
   gerarQuiz,
+  gerarPlanoEstudo,
+  versiculosParaMomento,
+  gerarOracao,
+  versiculoDoDia,
   type EstudoEstruturado,
-  type QuizPergunta
+  type QuizPergunta,
+  type DiaPlano,
+  type ConfortoMomento,
+  type VersiculoDia
 } from "@/lib/bibleAI";
 
 type AuthMode = "login" | "register" | "recover";
-type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "general" | "ranking" | "book-selector" | "bible-ai";
+type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "general" | "ranking" | "book-selector" | "bible-ai" | "devocional";
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -288,6 +298,9 @@ export function BiblePlatform() {
         {view === "bible-study" && (
           <BibleStudyCenter key="bible-study" progress={progress} setProgress={setProgress} />
         )}
+        {view === "devocional" && (
+          <DevocionalView key="devocional" progress={progress} setProgress={setProgress} />
+        )}
         {view === "sermons" && (
           <SermonsStudio key="sermons" progress={progress} setProgress={setProgress} />
         )}
@@ -440,6 +453,7 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
     { id: "dashboard" as const, label: "Início", icon: Home },
     { id: "study" as const, label: "Curso", icon: Library },
     { id: "bible-study" as const, label: "Estudo Bíblico", icon: MessageSquare },
+    { id: "devocional" as const, label: "Devocional", icon: Heart },
     { id: "sermons" as const, label: "Pregações", icon: FileText },
     { id: "general" as const, label: "Geral", icon: Presentation },
     { id: "ranking" as const, label: "Ranking", icon: Flame },
@@ -1542,6 +1556,248 @@ function QuizBlock({ perguntas }: { perguntas: QuizPergunta[] }) {
         })}
       </div>
     </div>
+  );
+}
+
+const SENTIMENTOS = [
+  { emoji: "😢", label: "Triste", valor: "triste e desanimado" },
+  { emoji: "😰", label: "Ansioso", valor: "ansioso e preocupado" },
+  { emoji: "😨", label: "Com medo", valor: "com medo e inseguro" },
+  { emoji: "😔", label: "Sozinho", valor: "sozinho e abandonado" },
+  { emoji: "😡", label: "Com raiva", valor: "com raiva e magoado" },
+  { emoji: "🙏", label: "Grato", valor: "grato e cheio de gratidão" },
+  { emoji: "😞", label: "Sem esperança", valor: "sem esperança e perdido" },
+  { emoji: "💪", label: "Sem forças", valor: "fraco e precisando de força" },
+  { emoji: "😴", label: "Cansado", valor: "cansado e esgotado" },
+  { emoji: "🤔", label: "Em dúvida", valor: "em dúvida sobre a fé" },
+  { emoji: "😭", label: "Sofrendo", valor: "passando por luto ou dor" },
+  { emoji: "🎯", label: "Tentado", valor: "sendo tentado a pecar" }
+];
+
+function DevocionalView({
+  progress,
+  setProgress
+}: {
+  progress: UserProgress;
+  setProgress: React.Dispatch<React.SetStateAction<UserProgress>>;
+}) {
+  const [versiculo, setVersiculo] = useState<VersiculoDia | null>(null);
+  const [carregandoVers, setCarregandoVers] = useState(true);
+
+  const [sentimentoAtivo, setSentimentoAtivo] = useState<string | null>(null);
+  const [conforto, setConforto] = useState<ConfortoMomento | null>(null);
+  const [carregandoConforto, setCarregandoConforto] = useState(false);
+
+  const [pedidoOracao, setPedidoOracao] = useState("");
+  const [oracao, setOracao] = useState("");
+  const [carregandoOracao, setCarregandoOracao] = useState(false);
+
+  const [temaPlano, setTemaPlano] = useState("");
+  const [plano, setPlano] = useState<DiaPlano[] | null>(null);
+  const [carregandoPlano, setCarregandoPlano] = useState(false);
+
+  useEffect(() => {
+    let ativo = true;
+    versiculoDoDia()
+      .then((v) => { if (ativo) setVersiculo(v); })
+      .catch(() => undefined)
+      .finally(() => { if (ativo) setCarregandoVers(false); });
+    return () => { ativo = false; };
+  }, []);
+
+  async function escolherSentimento(s: { label: string; valor: string }) {
+    if (carregandoConforto) return;
+    setSentimentoAtivo(s.label);
+    setConforto(null);
+    setCarregandoConforto(true);
+    try {
+      const resultado = await versiculosParaMomento(s.valor);
+      setConforto(resultado);
+      setProgress((current) => ({
+        ...current,
+        recentActivity: [`Buscou conforto: ${s.label}`, ...current.recentActivity].slice(0, 6)
+      }));
+    } catch {
+      setConforto({ mensagem: "Não foi possível buscar agora. Tente novamente.", versiculos: [], oracao: "" });
+    } finally {
+      setCarregandoConforto(false);
+    }
+  }
+
+  async function orar() {
+    if (!pedidoOracao.trim() || carregandoOracao) return;
+    setCarregandoOracao(true);
+    setOracao("");
+    try {
+      const texto = await gerarOracao(pedidoOracao);
+      setOracao(texto);
+    } catch {
+      setOracao("Não foi possível gerar a oração agora. Tente novamente.");
+    } finally {
+      setCarregandoOracao(false);
+    }
+  }
+
+  async function montarPlano() {
+    if (!temaPlano.trim() || carregandoPlano) return;
+    setCarregandoPlano(true);
+    setPlano(null);
+    try {
+      const dias = await gerarPlanoEstudo(temaPlano, 7);
+      setPlano(dias);
+      setProgress((current) => ({
+        ...current,
+        recentActivity: [`Criou plano: ${temaPlano}`.slice(0, 56), ...current.recentActivity].slice(0, 6)
+      }));
+    } catch {
+      setPlano([]);
+    } finally {
+      setCarregandoPlano(false);
+    }
+  }
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-5xl px-5 py-8">
+      <div className="mb-6">
+        <p className="flex items-center gap-2 text-sm uppercase tracking-[0.24em] text-gold-300/80"><Heart size={15} /> Devocional</p>
+        <h1 className="mt-3 text-4xl font-semibold leading-tight">Um momento com Deus.</h1>
+        <p className="mt-3 max-w-2xl leading-7 text-white/52">Comece o dia com a Palavra, encontre conforto para o seu coração e ore com a ajuda da IA.</p>
+      </div>
+
+      {/* Versículo do dia */}
+      <section className="relative overflow-hidden rounded-3xl border border-gold-300/20 bg-gradient-to-br from-gold-300/[0.08] to-transparent p-7 shadow-soft">
+        <div className="absolute -right-10 -top-10 h-40 w-40 rounded-full bg-gold-300/10 blur-3xl" />
+        <p className="flex items-center gap-2 text-sm uppercase tracking-[0.22em] text-gold-300/80"><Sparkle size={14} /> Versículo do dia</p>
+        {carregandoVers ? (
+          <div className="mt-5 flex items-center gap-3 text-white/52"><Loader size={18} className="animate-spin text-gold-300" /> Preparando...</div>
+        ) : versiculo ? (
+          <div className="mt-4">
+            <p className="text-2xl font-semibold leading-relaxed text-halo">“{versiculo.texto}”</p>
+            <p className="mt-3 text-sm font-semibold uppercase tracking-wide text-gold-200">{versiculo.referencia}</p>
+            {versiculo.reflexao && <p className="mt-4 max-w-2xl leading-7 text-white/64">{versiculo.reflexao}</p>}
+          </div>
+        ) : (
+          <p className="mt-4 text-white/52">Não foi possível carregar o versículo agora.</p>
+        )}
+      </section>
+
+      {/* Para o seu momento */}
+      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
+        <h2 className="text-xl font-semibold">Como você está se sentindo hoje?</h2>
+        <p className="mt-2 text-sm text-white/52">Toque no seu sentimento e receba versículos e uma palavra de conforto.</p>
+        <div className="mt-5 grid grid-cols-2 gap-2 sm:grid-cols-3 md:grid-cols-4">
+          {SENTIMENTOS.map((s) => (
+            <button
+              key={s.label}
+              onClick={() => escolherSentimento(s)}
+              disabled={carregandoConforto}
+              className={`flex items-center gap-2 rounded-2xl border px-4 py-3 text-sm transition disabled:opacity-50 ${sentimentoAtivo === s.label ? "border-gold-300/50 bg-gold-300/10 text-gold-100" : "border-white/10 bg-white/[0.03] text-white/72 hover:border-gold-300/30 hover:bg-white/[0.06]"}`}
+            >
+              <span className="text-lg">{s.emoji}</span> {s.label}
+            </button>
+          ))}
+        </div>
+
+        {carregandoConforto && (
+          <div className="mt-6 flex items-center gap-3 rounded-2xl border border-white/10 bg-[#101012]/72 p-5 text-white/52">
+            <Loader size={18} className="animate-spin text-gold-300" /> Buscando conforto na Palavra...
+          </div>
+        )}
+
+        {conforto && !carregandoConforto && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-6 rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
+            {conforto.mensagem && <p className="leading-8 text-white/76">{conforto.mensagem}</p>}
+            {conforto.versiculos.length > 0 && (
+              <div className="mt-5 space-y-3">
+                {conforto.versiculos.map((v, i) => (
+                  <div key={i} className="rounded-2xl border border-gold-300/15 bg-gold-300/[0.04] p-4">
+                    <p className="leading-7 text-white/82">“{v.texto}”</p>
+                    <p className="mt-2 text-sm font-semibold text-gold-200">{v.referencia}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+            {conforto.oracao && (
+              <div className="mt-5 border-t border-white/8 pt-5">
+                <p className="flex items-center gap-2 text-sm font-semibold text-gold-200"><HandHeart size={16} /> Faça esta oração</p>
+                <p className="mt-2 leading-7 text-white/70">{conforto.oracao}</p>
+              </div>
+            )}
+          </motion.div>
+        )}
+      </section>
+
+      {/* Oração guiada */}
+      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
+        <h2 className="flex items-center gap-2 text-xl font-semibold"><HandHeart size={19} className="text-gold-300" /> Oração guiada</h2>
+        <p className="mt-2 text-sm text-white/52">Pelo que você quer orar hoje? A IA monta uma oração bíblica para você.</p>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <input
+            value={pedidoOracao}
+            onChange={(e) => setPedidoOracao(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && orar()}
+            placeholder="Ex: pela minha família, por sabedoria, por cura..."
+            className="h-13 flex-1 rounded-2xl border border-white/10 bg-[#0f0f11] px-4 py-3 outline-none transition focus:border-gold-300/45"
+          />
+          <button
+            onClick={orar}
+            disabled={carregandoOracao || !pedidoOracao.trim()}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gold-300 px-6 py-3 font-semibold text-ink transition hover:brightness-110 disabled:opacity-50"
+          >
+            {carregandoOracao ? <Loader size={18} className="animate-spin" /> : <HandHeart size={18} />}
+            Orar
+          </button>
+        </div>
+        {oracao && (
+          <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} className="mt-5 rounded-3xl border border-gold-300/25 bg-gold-300/[0.05] p-6 shadow-soft">
+            <p className="leading-8 text-white/80 whitespace-pre-wrap">{oracao}</p>
+          </motion.div>
+        )}
+      </section>
+
+      {/* Plano de leitura guiado */}
+      <section className="mt-6 rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
+        <h2 className="flex items-center gap-2 text-xl font-semibold"><GraduationCap size={19} className="text-gold-300" /> Plano de leitura de 7 dias</h2>
+        <p className="mt-2 text-sm text-white/52">Diga um tema ou livro e a IA monta um roteiro de estudo de 7 dias.</p>
+        <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+          <input
+            value={temaPlano}
+            onChange={(e) => setTemaPlano(e.target.value)}
+            onKeyDown={(e) => e.key === "Enter" && montarPlano()}
+            placeholder="Ex: Evangelho de João, o amor de Deus, os Salmos..."
+            className="h-13 flex-1 rounded-2xl border border-white/10 bg-[#0f0f11] px-4 py-3 outline-none transition focus:border-gold-300/45"
+          />
+          <button
+            onClick={montarPlano}
+            disabled={carregandoPlano || !temaPlano.trim()}
+            className="inline-flex items-center justify-center gap-2 rounded-2xl bg-gold-300 px-6 py-3 font-semibold text-ink transition hover:brightness-110 disabled:opacity-50"
+          >
+            {carregandoPlano ? <Loader size={18} className="animate-spin" /> : <GraduationCap size={18} />}
+            Montar plano
+          </button>
+        </div>
+        {carregandoPlano && (
+          <div className="mt-5 flex items-center gap-3 text-white/52"><Loader size={18} className="animate-spin text-gold-300" /> Montando seu plano de estudo...</div>
+        )}
+        {plano && plano.length > 0 && (
+          <div className="mt-5 space-y-3">
+            {plano.map((d) => (
+              <div key={d.dia} className="flex gap-4 rounded-2xl border border-white/8 bg-white/[0.025] p-4">
+                <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-gold-300/15 font-semibold text-gold-200">{d.dia}</div>
+                <div>
+                  <p className="font-semibold">{d.titulo}</p>
+                  <p className="mt-1 text-sm text-gold-200">📖 {d.leitura}</p>
+                  <p className="mt-1 text-sm leading-6 text-white/60">{d.foco}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+        {plano && plano.length === 0 && !carregandoPlano && (
+          <p className="mt-5 text-sm text-white/52">Não foi possível montar o plano agora. Tente novamente.</p>
+        )}
+      </section>
+    </motion.div>
   );
 }
 
