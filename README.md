@@ -68,6 +68,14 @@ Depois execute o SQL em `supabase/schema.sql` no SQL Editor do Supabase. Ele cri
 
 Todas as tabelas principais usam Row Level Security para isolar dados por `auth.uid()`.
 
+O app salva no Supabase quando:
+
+1. `NEXT_PUBLIC_SUPABASE_URL` e `NEXT_PUBLIC_SUPABASE_ANON_KEY` estao configuradas no build.
+2. O usuario entra por Supabase Auth, nao pelo usuario demo local.
+3. O SQL de `supabase/schema.sql` ja foi executado.
+
+O usuario demo salva apenas no navegador, porque nao existe sessao `auth.uid()` real para passar pelas regras RLS.
+
 ## Deploy
 
 ### Vercel
@@ -81,6 +89,11 @@ Todas as tabelas principais usam Row Level Security para isolar dados por `auth.
 ### GitHub Pages
 
 O workflow `.github/workflows/deploy-pages.yml` publica a pasta `out` quando houver push na branch `main`.
+
+Para o GitHub Pages gravar no Supabase, crie estes secrets no repositorio em `Settings > Secrets and variables > Actions`:
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 ## Estrutura
 

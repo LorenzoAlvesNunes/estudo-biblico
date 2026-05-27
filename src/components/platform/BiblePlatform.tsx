@@ -32,7 +32,7 @@ import {
   type UserProgress,
   emptyProgress,
   getStoredSession,
-  loadProgress,
+  loadUserProgress,
   login,
   logout,
   persistProgress,
@@ -139,6 +139,7 @@ export function BiblePlatform() {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState<AppUser | null>(null);
   const [progress, setProgress] = useState<UserProgress>(emptyProgress);
+  const [progressLoaded, setProgressLoaded] = useState(false);
   const [view, setView] = useState<AppView>("dashboard");
   const [selectedBook, setSelectedBook] = useState<BibleBook>(books[0] as BibleBook);
   const [chapter, setChapter] = useState(1);
@@ -147,21 +148,25 @@ export function BiblePlatform() {
     const session = getStoredSession();
     if (session) {
       setUser(session);
-      setProgress(loadProgress(session.id));
+      loadUserProgress(session).then((savedProgress) => {
+        setProgress(savedProgress);
+        setProgressLoaded(true);
+      });
     }
     const timer = window.setTimeout(() => setLoading(false), 650);
     return () => window.clearTimeout(timer);
   }, []);
 
   useEffect(() => {
-    if (!user) return;
+    if (!user || !progressLoaded) return;
     persistProgress(user, progress);
-  }, [progress, user]);
+  }, [progress, progressLoaded, user]);
 
   async function handleLogout() {
     await logout();
     setUser(null);
     setProgress(emptyProgress);
+    setProgressLoaded(false);
     setView("dashboard");
   }
 
@@ -177,9 +182,12 @@ export function BiblePlatform() {
     return (
       <main className="min-h-screen bg-study text-halo">
         <AuthScreen
-          onAuthenticated={(nextUser) => {
+          onAuthenticated={async (nextUser) => {
+            setProgressLoaded(false);
+            const savedProgress = await loadUserProgress(nextUser);
+            setProgress(savedProgress);
             setUser(nextUser);
-            setProgress(loadProgress(nextUser.id));
+            setProgressLoaded(true);
           }}
         />
       </main>
@@ -235,7 +243,7 @@ function LoadingScreen() {
   );
 }
 
-function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => void }) {
+function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => Promise<void> }) {
   const [mode, setMode] = useState<AuthMode>("login");
   const [name, setName] = useState("Lorenzo");
   const [email, setEmail] = useState("Lorenzoalzeny.com");
@@ -249,8 +257,8 @@ function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => v
     setMessage("");
 
     try {
-      if (mode === "login") onAuthenticated(await login(email, password));
-      if (mode === "register") onAuthenticated(await register(name, email, password));
+      if (mode === "login") await onAuthenticated(await login(email, password));
+      if (mode === "register") await onAuthenticated(await register(name, email, password));
       if (mode === "recover") {
         await recoverPassword(email);
         setMessage("Se o Supabase estiver configurado, voce recebera o email de recuperacao.");

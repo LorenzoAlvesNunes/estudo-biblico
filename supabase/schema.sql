@@ -18,10 +18,12 @@ create table if not exists bible_app.study_progress (
 create table if not exists bible_app.study_notes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
+  note_key text not null,
   book_id text,
   chapter integer,
   content text not null,
-  updated_at timestamptz default now()
+  updated_at timestamptz default now(),
+  unique (user_id, note_key)
 );
 
 create table if not exists bible_app.quizzes (
@@ -35,7 +37,7 @@ create table if not exists bible_app.quizzes (
 );
 
 create table if not exists bible_app.sermons (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   user_id uuid not null references auth.users(id) on delete cascade,
   title text,
   theme text,
@@ -53,7 +55,8 @@ create table if not exists bible_app.favorites (
   book_id text,
   chapter integer,
   verse_ref text,
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  unique (user_id, verse_ref)
 );
 
 create table if not exists bible_app.devotional_history (

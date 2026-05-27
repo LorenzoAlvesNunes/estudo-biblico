@@ -96,16 +96,109 @@ export function loadProgress(userId: string): UserProgress {
   }
 }
 
+export async function loadUserProgress(user: AppUser): Promise<UserProgress> {
+  const localProgress = loadProgress(user.id);
+
+  if (!supabase || user.provider !== "supabase") return localProgress;
+
+  const { data, error } = await supabase
+    .schema("bible_app")
+    .from("study_progress")
+    .select("payload")
+    .eq("user_id", user.id)
+    .maybeSingle();
+
+  if (error) return localProgress;
+
+  if (data?.payload) {
+    const remoteProgress = { ...emptyProgress, ...(data.payload as Partial<UserProgress>) };
+    localStorage.setItem(progressKey(user.id), JSON.stringify(remoteProgress));
+    return remoteProgress;
+  }
+
+  await persistProgress(user, localProgress);
+  return localProgress;
+}
+
+async function ensureProfile(user: AppUser) {
+  if (!supabase || user.provider !== "supabase") return;
+
+  await supabase.schema("bible_app").from("profiles").upsert({
+    id: user.id,
+    email: user.email,
+    name: user.name
+  });
+}
+
 export async function persistProgress(user: AppUser, progress: UserProgress) {
   localStorage.setItem(progressKey(user.id), JSON.stringify(progress));
 
   if (!supabase || user.provider !== "supabase") return;
 
-  await supabase.schema("bible_app").from("study_progress").upsert({
+  const { error } = await supabase.schema("bible_app").from("study_progress").upsert({
     user_id: user.id,
     payload: progress,
     updated_at: new Date().toISOString()
   });
+
+  if (!error) await persistDerivedTables(user, progress);
+}
+
+async function persistDerivedTables(user: AppUser, progress: UserProgress) {
+  if (!supabase || user.provider !== "supabase") return;
+
+  const completedRows = Object.entries(progress.completedChapters).flatMap(([bookId, chapters]) =>
+    chapters.map((chapter) => ({
+      user_id: user.id,
+      book_id: bookId,
+      chapter
+    }))
+  );
+
+  const noteRows = Object.entries(progress.notes).map(([key, content]) => {
+    const [bookId, chapter] = key.split(":");
+    return {
+      user_id: user.id,
+      note_key: key,
+      book_id: bookId ?? "general",
+      chapter: Number(chapter) || null,
+      content,
+      updated_at: new Date().toISOString()
+    };
+  });
+
+  const favoriteRows = progress.favoriteVerses.map((verseRef) => ({
+    user_id: user.id,
+    verse_ref: verseRef
+  }));
+
+  const sermonRows = progress.sermons.map((sermon) => ({
+    id: sermon.id,
+    user_id: user.id,
+    title: sermon.title,
+    theme: sermon.theme,
+    verse: sermon.verse,
+    intro: sermon.intro,
+    topics: sermon.topics,
+    conclusion: sermon.conclusion,
+    application: sermon.application,
+    updated_at: sermon.updatedAt
+  }));
+
+  await Promise.all([
+    completedRows.length
+      ? supabase.schema("bible_app").from("completed_chapters").upsert(completedRows, { onConflict: "user_id,book_id,chapter" })
+      : Promise.resolve(),
+    noteRows.length
+      ? supabase.schema("bible_app").from("study_notes").upsert(noteRows, { onConflict: "user_id,note_key" })
+      : Promise.resolve(),
+    favoriteRows.length
+      ? supabase.schema("bible_app").from("favorites").upsert(favoriteRows, { onConflict: "user_id,verse_ref" })
+      : Promise.resolve(),
+    sermonRows.length
+      ? supabase.schema("bible_app").from("sermons").upsert(sermonRows, { onConflict: "id" })
+      : Promise.resolve()
+  ]);
 }
 
 export async function login(email: string, password: string): Promise<AppUser> {
@@ -129,6 +222,7 @@ export async function login(email: string, password: string): Promise<AppUser> {
     provider: "supabase" as const
   };
   storeSession(user);
+  await ensureProfile(user);
   return user;
 }
 
@@ -153,6 +247,8 @@ export async function register(name: string, email: string, password: string): P
 
   const user = { id: data.user.id, email: data.user.email, name, provider: "supabase" as const };
   storeSession(user);
+  await ensureProfile(user);
+  await persistProgress(user, emptyProgress);
   return user;
 }
 
