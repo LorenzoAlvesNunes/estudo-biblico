@@ -44,7 +44,7 @@ import {
 } from "@/lib/userStore";
 
 type AuthMode = "login" | "register" | "recover";
-type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "presentation";
+type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "general" | "ranking" | "book-selector";
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -235,8 +235,14 @@ export function BiblePlatform() {
         {view === "sermons" && (
           <SermonsStudio key="sermons" progress={progress} setProgress={setProgress} />
         )}
-        {view === "presentation" && (
-          <PresentationBriefing key="presentation" onNavigate={setView} />
+        {view === "general" && (
+          <GeneralOverview key="general" progress={progress} onOpenStudy={openStudy} />
+        )}
+        {view === "ranking" && (
+          <RankingView key="ranking" user={user} progress={progress} />
+        )}
+        {view === "book-selector" && (
+          <BookSelectorView key="book-selector" onOpenStudy={openStudy} progress={progress} />
         )}
       </AnimatePresence>
     </main>
@@ -373,7 +379,9 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
     { id: "study" as const, label: "Curso", icon: Library },
     { id: "bible-study" as const, label: "Estudo Biblico", icon: MessageSquare },
     { id: "sermons" as const, label: "Pregacoes", icon: FileText },
-    { id: "presentation" as const, label: "Apresentacao", icon: Presentation }
+    { id: "general" as const, label: "Geral", icon: Presentation },
+    { id: "ranking" as const, label: "Ranking", icon: Flame },
+    { id: "book-selector" as const, label: "Livro", icon: BookOpen }
   ];
 
   return (
@@ -443,7 +451,6 @@ function Dashboard({
           <div className="mt-4 flex flex-wrap gap-2">
             <button onClick={() => onNavigate("bible-study")} className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/64 transition hover:text-white">Perguntar sobre a Biblia</button>
             <button onClick={() => onNavigate("sermons")} className="rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-sm text-white/64 transition hover:text-white">Criar pregacao</button>
-            <button onClick={() => onNavigate("presentation")} className="rounded-full border border-gold-300/20 bg-gold-300/[0.10] px-4 py-2 text-sm font-semibold text-gold-100 transition hover:bg-gold-300/[0.16]">Apresentar ao bispo</button>
           </div>
         </div>
 
@@ -567,94 +574,155 @@ function InstallAppButton({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function PresentationBriefing({ onNavigate }: { onNavigate: (view: AppView) => void }) {
-  const ideas = [
-    {
-      title: "Escola biblica digital",
-      text: "Cada livro vira uma jornada de estudo com leitura, explicacao, quiz, anotacoes e progresso."
-    },
-    {
-      title: "Discipulado acompanhavel",
-      text: "O aluno cresce por capitulos, XP, streak e revisoes, sem perder o foco espiritual."
-    },
-    {
-      title: "Pregacoes organizadas",
-      text: "Lideres podem criar esbocos, salvar temas, versiculos-base, topicos e aplicacoes."
-    },
-    {
-      title: "App no celular",
-      text: "A plataforma funciona como PWA: o usuario instala pela tela inicial e acessa como aplicativo."
-    }
-  ];
-
-  const roadmap = [
-    "Painel do pastor para acompanhar alunos, turmas e celulas.",
-    "Trilhas prontas: novo convertido, lideranca, evangelismo e familia.",
-    "Relatorios semanais de progresso para discipulado.",
-    "Biblioteca de pregacoes aprovadas pela lideranca.",
-    "Modo celula com roteiro, perguntas e desafio da semana."
+function GeneralOverview({ progress, onOpenStudy }: { progress: UserProgress; onOpenStudy: (book: BibleBook, chapter?: number) => void }) {
+  const highlights = [
+    { icon: BookOpen, label: "66 livros", desc: "Biblia completa organizada" },
+    { icon: Flame, label: "Progresso rastreado", desc: "XP, nivel, streak e resumos" },
+    { icon: Check, label: "Estudo guiado", desc: "Leitura, notas, quiz e revisao" },
+    { icon: Download, label: "App no celular", desc: "Instale como PWA offline" }
   ];
 
   return (
-    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1400px] px-5 py-8">
-      <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft lg:p-8">
-        <div className="grid gap-8 lg:grid-cols-[1fr_360px]">
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1200px] px-5 py-8">
+      <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-8 shadow-soft lg:p-10">
+        <div className="space-y-8">
           <div>
-            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Apresentacao para lideranca</p>
-            <h1 className="mt-3 max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl">Uma escola biblica moderna para formar pessoas com profundidade.</h1>
-            <p className="mt-5 max-w-3xl text-lg leading-8 text-white/58">
-              A proposta e simples: transformar o estudo biblico em uma jornada clara, acompanhavel e bonita, unindo leitura, ensino, anotacoes, quizzes, progresso e preparacao de pregacoes.
+            <h1 className="max-w-4xl text-4xl font-semibold leading-tight sm:text-5xl">Estude a Biblia inteira de forma organizada.</h1>
+            <p className="mt-5 max-w-2xl text-lg leading-8 text-white/58">
+              Leia capitulo por capitulo, acompanhe seu progresso com XP e nivel, escreva anotacoes, faca quizzes e apresente pregacoes. Tudo estruturado para aprendizado profundo sem distracao.
             </p>
-            <div className="mt-7 flex flex-wrap gap-3">
-              <button onClick={() => onNavigate("dashboard")} className="inline-flex h-11 items-center gap-2 rounded-full bg-halo px-5 font-semibold text-ink transition hover:bg-gold-100">
-                Ver plataforma
-                <ArrowRight size={17} />
-              </button>
-              <InstallAppButton />
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {highlights.map((item) => {
+              const Icon = item.icon;
+              return (
+                <div key={item.label} className="rounded-2xl border border-white/8 bg-white/[0.025] p-4">
+                  <Icon className="text-gold-300" size={24} />
+                  <h3 className="mt-3 font-semibold">{item.label}</h3>
+                  <p className="mt-1 text-sm text-white/52">{item.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+
+          <div className="flex flex-wrap gap-3">
+            <button onClick={() => onOpenStudy(books[0] as BibleBook, 1)} className="inline-flex h-11 items-center gap-2 rounded-full bg-halo px-5 font-semibold text-ink transition hover:bg-gold-100">
+              Comecjar Biblia
+              <ArrowRight size={17} />
+            </button>
+            <button onClick={() => window.scrollTo(0, 0)} className="inline-flex h-11 items-center gap-2 rounded-full border border-white/20 px-5 font-semibold transition hover:bg-white/5">
+              Explorar livros
+            </button>
+            <InstallAppButton />
+          </div>
+        </div>
+      </section>
+    </motion.div>
+  );
+}
+
+function RankingView({ user, progress }: { user: AppUser; progress: UserProgress }) {
+  const mockUsers = [
+    { id: 1, name: "Lorenzo", level: 8, xp: 2500, streak: 15, booksStarted: 5 },
+    { id: 2, name: "Ana Carolina", level: 6, xp: 1850, streak: 12, booksStarted: 4 },
+    { id: 3, name: "Pastor Felipe", level: 7, xp: 2100, streak: 20, booksStarted: 6 },
+    { id: 4, name: "Maria", level: 5, xp: 1400, streak: 8, booksStarted: 3 },
+    { id: 5, name: "Joao", level: 4, xp: 950, streak: 5, booksStarted: 2 },
+    { id: 6, name: "Ester", level: 6, xp: 1700, streak: 10, booksStarted: 4 }
+  ].sort((a, b) => b.xp - a.xp);
+
+  const currentUserRank = mockUsers.findIndex((u) => u.name === user.name) + 1 || 1;
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1000px] px-5 py-8">
+      <section className="rounded-3xl border border-white/10 bg-white/[0.035] p-8 shadow-soft">
+        <h1 className="text-3xl font-semibold">Ranking da comunidade</h1>
+        <p className="mt-2 text-white/52">Veja quem esta avancando mais no estudo biblico</p>
+
+        <div className="mt-8 overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-white/10 text-white/52">
+                <th className="px-4 py-3">Pos.</th>
+                <th className="px-4 py-3">Nome</th>
+                <th className="px-4 py-3">Level</th>
+                <th className="px-4 py-3">XP</th>
+                <th className="px-4 py-3">Streak</th>
+                <th className="px-4 py-3">Livros</th>
+              </tr>
+            </thead>
+            <tbody>
+              {mockUsers.map((u, idx) => (
+                <tr key={u.id} className={`border-b border-white/8 transition ${u.name === user.name ? "bg-gold-300/10" : "hover:bg-white/[0.02]"}`}>
+                  <td className="px-4 py-4 font-semibold text-gold-300">{idx + 1}</td>
+                  <td className="px-4 py-4 font-medium">{u.name}</td>
+                  <td className="px-4 py-4">{u.level}</td>
+                  <td className="px-4 py-4 text-gold-300">{u.xp.toLocaleString()}</td>
+                  <td className="px-4 py-4 flex items-center gap-1">
+                    <Flame size={16} className="text-orange-400" />
+                    {u.streak}
+                  </td>
+                  <td className="px-4 py-4">{u.booksStarted}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <div className="mt-8 rounded-2xl border border-white/8 bg-white/[0.025] p-6">
+          <p className="text-sm text-white/52 uppercase tracking-wider">Sua posicao</p>
+          <p className="mt-2 text-3xl font-bold text-gold-300">#{currentUserRank}</p>
+          <p className="mt-1 text-white/58">{user.name} - {progress.level} nivel - {progress.xp} XP</p>
+        </div>
+      </section>
+    </motion.div>
+  );
+}
+
+function BookSelectorView({ onOpenStudy, progress }: { onOpenStudy: (book: BibleBook, chapter?: number) => void; progress: UserProgress }) {
+  const groupedBooks: Record<string, BibleBook[]> = {};
+  books.forEach((book) => {
+    const cat = book.category || "Outro";
+    if (!groupedBooks[cat]) groupedBooks[cat] = [];
+    groupedBooks[cat].push(book as BibleBook);
+  });
+
+  return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1400px] px-5 py-8">
+      <section className="space-y-8">
+        <div>
+          <h1 className="text-3xl font-semibold">Selecione um livro da Biblia</h1>
+          <p className="mt-2 text-white/52">Comece sua jornada em qualquer livro. Seu progresso sera rastreado automaticamente.</p>
+        </div>
+
+        {Object.entries(groupedBooks).map(([category, categoryBooks]) => (
+          <div key={category}>
+            <h2 className="mb-4 text-xl font-semibold uppercase tracking-wider text-gold-300">{category}</h2>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {categoryBooks.map((book) => {
+                const bookProgress = progress.completedChapters[book.id]?.length || 0;
+                const total = book.id === "genesis" ? 50 : book.id === "salmos" ? 150 : 30;
+                const percent = Math.round((bookProgress / total) * 100);
+
+                return (
+                  <button
+                    key={book.id}
+                    onClick={() => onOpenStudy(book, 1)}
+                    className="group rounded-2xl border border-white/8 bg-white/[0.025] p-4 text-left transition hover:bg-white/[0.05] hover:border-gold-300/30"
+                  >
+                    <h3 className="font-semibold group-hover:text-gold-300 transition">{book.name}</h3>
+                    <p className="mt-1 text-xs text-white/42">{total} capitulos</p>
+                    <div className="mt-3 h-1.5 w-full rounded-full bg-white/8">
+                      <div className="h-full rounded-full bg-gold-300 transition" style={{ width: `${percent}%` }} />
+                    </div>
+                    <p className="mt-1 text-xs text-white/42">{percent}% completo</p>
+                  </button>
+                );
+              })}
             </div>
           </div>
-
-          <div className="rounded-3xl border border-gold-300/18 bg-gold-300/[0.08] p-5">
-            <p className="text-sm uppercase tracking-[0.22em] text-gold-100/76">Pitch em 60 segundos</p>
-            <p className="mt-4 text-2xl font-semibold leading-snug">"Bispo, essa plataforma ajuda a igreja a estudar a Biblia com metodo, constancia e acompanhamento."</p>
-            <p className="mt-4 leading-7 text-white/56">Ela pode servir novos convertidos, lideres, celulas e pessoas que querem aprender a Palavra com profundidade, mas precisam de um caminho organizado.</p>
-          </div>
-        </div>
-      </section>
-
-      <section className="mt-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {ideas.map((idea) => (
-          <article key={idea.title} className="rounded-3xl border border-white/10 bg-[#101012]/72 p-5 shadow-soft">
-            <span className="grid h-10 w-10 place-items-center rounded-2xl border border-gold-300/20 bg-gold-300/[0.10] text-gold-200">
-              <Check size={17} />
-            </span>
-            <h2 className="mt-5 text-xl font-semibold">{idea.title}</h2>
-            <p className="mt-3 leading-7 text-white/52">{idea.text}</p>
-          </article>
         ))}
-      </section>
-
-      <section className="mt-6 grid gap-6 lg:grid-cols-[1fr_420px]">
-        <div className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
-          <p className="text-sm uppercase tracking-[0.22em] text-gold-300/74">Como mostrar</p>
-          <div className="mt-5 space-y-4">
-            {["Entrar com login demo e mostrar que cada pessoa tem sua propria conta.", "Abrir Atos ou Joao e mostrar a jornada por capitulos.", "Escrever uma anotacao e concluir um quiz.", "Abrir Pregacoes e mostrar um esboco salvo.", "Mostrar o botao de instalar no celular."].map((item, index) => (
-              <div key={item} className="flex gap-4 rounded-2xl border border-white/8 bg-white/[0.025] p-4">
-                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-halo text-sm font-bold text-ink">{index + 1}</span>
-                <p className="leading-7 text-white/58">{item}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <aside className="rounded-3xl border border-white/10 bg-white/[0.035] p-6 shadow-soft">
-          <p className="text-sm uppercase tracking-[0.22em] text-gold-300/74">Proximas ideias</p>
-          <div className="mt-5 space-y-3">
-            {roadmap.map((item) => (
-              <p key={item} className="rounded-2xl border border-white/8 bg-white/[0.025] p-4 leading-7 text-white/56">{item}</p>
-            ))}
-          </div>
-        </aside>
       </section>
     </motion.div>
   );
