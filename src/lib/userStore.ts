@@ -13,11 +13,25 @@ export type UserProgress = {
   streak: number;
   studiedMinutes: number;
   quizzesDone: number;
+  examsDone: number;
   completedBooks: string[];
   completedChapters: Record<string, number[]>;
+  completedExams: string[];
   favorites: string[];
   favoriteVerses: string[];
   notes: Record<string, string>;
+  notebooks: Record<string, string[]>;
+  sermons: Array<{
+    id: string;
+    title: string;
+    theme: string;
+    verse: string;
+    intro: string;
+    topics: string;
+    conclusion: string;
+    application: string;
+    updatedAt: string;
+  }>;
   devotionalHistory: string[];
   recentActivity: string[];
   quizScores: Record<string, number>;
@@ -29,11 +43,15 @@ export const emptyProgress: UserProgress = {
   streak: 0,
   studiedMinutes: 0,
   quizzesDone: 0,
+  examsDone: 0,
   completedBooks: [],
   completedChapters: {},
+  completedExams: [],
   favorites: [],
   favoriteVerses: [],
   notes: {},
+  notebooks: {},
+  sermons: [],
   devotionalHistory: [],
   recentActivity: [],
   quizScores: {}
@@ -83,7 +101,7 @@ export async function persistProgress(user: AppUser, progress: UserProgress) {
 
   if (!supabase || user.provider !== "supabase") return;
 
-  await supabase.from("progress").upsert({
+  await supabase.schema("bible_app").from("study_progress").upsert({
     user_id: user.id,
     payload: progress,
     updated_at: new Date().toISOString()

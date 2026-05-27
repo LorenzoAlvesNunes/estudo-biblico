@@ -2,6 +2,18 @@
 
 Plataforma premium de estudo biblico profundo com login, progresso individual, quizzes, devocionais, notas, favoritos, gamificacao e IA biblica.
 
+## Experiencia atual
+
+- Dashboard com progresso geral, XP, streak, quizzes e provas.
+- Biblioteca separada por Antigo Testamento e Novo Testamento.
+- Curso por livro e capitulo, com leitura guiada, explicacao, insights, conexoes com Jesus e aplicacao.
+- Sidebar de capitulos com progresso visual.
+- Painel de anotacoes auto-salvas, favoritos e versiculos marcados.
+- Quiz automatico depois de marcar um capitulo como lido.
+- Prova por blocos de capitulos.
+- Aba `Estudo Biblico` para perguntas e explicacoes organizadas.
+- Aba `Pregacoes` para criar e salvar esbocos.
+
 ## Stack
 
 - Next.js + React + TypeScript
@@ -43,16 +55,16 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_SITE_URL=
 ```
 
-Depois execute o SQL em `supabase/schema.sql` no SQL Editor do Supabase. Ele cria:
+Depois execute o SQL em `supabase/schema.sql` no SQL Editor do Supabase. Ele cria o schema separado `bible_app`, para nao misturar com tabelas do Nexa-OS:
 
-- profiles
-- progress
-- quizzes
-- notes
-- favorites
-- streaks
-- devotional_history
-- completed_books
+- bible_app.profiles
+- bible_app.study_progress
+- bible_app.study_notes
+- bible_app.quizzes
+- bible_app.sermons
+- bible_app.favorites
+- bible_app.devotional_history
+- bible_app.completed_chapters
 
 Todas as tabelas principais usam Row Level Security para isolar dados por `auth.uid()`.
 

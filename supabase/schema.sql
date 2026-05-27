@@ -1,50 +1,62 @@
-create table if not exists public.profiles (
+create schema if not exists bible_app;
+
+grant usage on schema bible_app to anon, authenticated;
+
+create table if not exists bible_app.profiles (
   id uuid primary key references auth.users(id) on delete cascade,
   email text not null,
   name text,
   created_at timestamptz default now()
 );
 
-create table if not exists public.progress (
+create table if not exists bible_app.study_progress (
   user_id uuid primary key references auth.users(id) on delete cascade,
   payload jsonb not null default '{}'::jsonb,
   updated_at timestamptz default now()
 );
 
-create table if not exists public.quizzes (
+create table if not exists bible_app.study_notes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   book_id text,
-  score integer not null default 0,
-  xp integer not null default 0,
-  answers jsonb not null default '[]'::jsonb,
-  created_at timestamptz default now()
-);
-
-create table if not exists public.notes (
-  id uuid primary key default gen_random_uuid(),
-  user_id uuid not null references auth.users(id) on delete cascade,
-  book_id text not null,
+  chapter integer,
   content text not null,
   updated_at timestamptz default now()
 );
 
-create table if not exists public.favorites (
+create table if not exists bible_app.quizzes (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   book_id text,
+  chapter integer,
+  score integer not null default 0,
+  answers jsonb not null default '[]'::jsonb,
+  created_at timestamptz default now()
+);
+
+create table if not exists bible_app.sermons (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text,
+  theme text,
+  verse text,
+  intro text,
+  topics text,
+  conclusion text,
+  application text,
+  updated_at timestamptz default now()
+);
+
+create table if not exists bible_app.favorites (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  book_id text,
+  chapter integer,
   verse_ref text,
   created_at timestamptz default now()
 );
 
-create table if not exists public.streaks (
-  user_id uuid primary key references auth.users(id) on delete cascade,
-  current_streak integer not null default 0,
-  best_streak integer not null default 0,
-  last_activity_date date
-);
-
-create table if not exists public.devotional_history (
+create table if not exists bible_app.devotional_history (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   devotional_date date not null default current_date,
@@ -53,29 +65,31 @@ create table if not exists public.devotional_history (
   created_at timestamptz default now()
 );
 
-create table if not exists public.completed_books (
+create table if not exists bible_app.completed_chapters (
   user_id uuid not null references auth.users(id) on delete cascade,
   book_id text not null,
+  chapter integer not null,
   completed_at timestamptz default now(),
-  primary key (user_id, book_id)
+  primary key (user_id, book_id, chapter)
 );
 
-alter table public.profiles enable row level security;
-alter table public.progress enable row level security;
-alter table public.quizzes enable row level security;
-alter table public.notes enable row level security;
-alter table public.favorites enable row level security;
-alter table public.streaks enable row level security;
-alter table public.devotional_history enable row level security;
-alter table public.completed_books enable row level security;
+alter table bible_app.profiles enable row level security;
+alter table bible_app.study_progress enable row level security;
+alter table bible_app.study_notes enable row level security;
+alter table bible_app.quizzes enable row level security;
+alter table bible_app.sermons enable row level security;
+alter table bible_app.favorites enable row level security;
+alter table bible_app.devotional_history enable row level security;
+alter table bible_app.completed_chapters enable row level security;
 
-create policy "Users can read own profile" on public.profiles for select using (auth.uid() = id);
-create policy "Users can update own profile" on public.profiles for update using (auth.uid() = id);
+create policy "own profile" on bible_app.profiles for all using (auth.uid() = id) with check (auth.uid() = id);
+create policy "own study progress" on bible_app.study_progress for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own notes" on bible_app.study_notes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own quizzes" on bible_app.quizzes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own sermons" on bible_app.sermons for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own favorites" on bible_app.favorites for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own devotionals" on bible_app.devotional_history for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+create policy "own completed chapters" on bible_app.completed_chapters for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
 
-create policy "Users own progress" on public.progress for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users own quizzes" on public.quizzes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users own notes" on public.notes for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users own favorites" on public.favorites for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users own streaks" on public.streaks for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users own devotionals" on public.devotional_history for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
-create policy "Users own completed books" on public.completed_books for all using (auth.uid() = user_id) with check (auth.uid() = user_id);
+grant select, insert, update, delete on all tables in schema bible_app to authenticated;
+grant usage on all sequences in schema bible_app to authenticated;
