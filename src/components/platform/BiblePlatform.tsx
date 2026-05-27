@@ -24,6 +24,7 @@ import {
   Plus,
   Presentation,
   Search,
+  Sparkles,
   Trash2,
   Type,
   X
@@ -42,9 +43,10 @@ import {
   recoverPassword,
   register
 } from "@/lib/userStore";
+import BibleAIChat from "@/components/BibleAIChat";
 
 type AuthMode = "login" | "register" | "recover";
-type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "general" | "ranking" | "book-selector";
+type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "general" | "ranking" | "book-selector" | "bible-ai";
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
   userChoice: Promise<{ outcome: "accepted" | "dismissed"; platform: string }>;
@@ -253,6 +255,11 @@ export function BiblePlatform() {
         {view === "book-selector" && (
           <BookSelectorView key="book-selector" onOpenStudy={openStudy} progress={progress} />
         )}
+        {view === "bible-ai" && (
+          <motion.div key="bible-ai" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1500px] px-5 py-8">
+            <BibleAIChat />
+          </motion.div>
+        )}
       </AnimatePresence>
     </main>
   );
@@ -391,7 +398,8 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
     { id: "sermons" as const, label: "Pregacoes", icon: FileText },
     { id: "general" as const, label: "Geral", icon: Presentation },
     { id: "ranking" as const, label: "Ranking", icon: Flame },
-    { id: "book-selector" as const, label: "Livro", icon: BookOpen }
+    { id: "book-selector" as const, label: "Livro", icon: BookOpen },
+    { id: "bible-ai" as const, label: "IA Bíblica", icon: Sparkles }
   ];
 
   const handleNavClick = (id: AppView) => {
