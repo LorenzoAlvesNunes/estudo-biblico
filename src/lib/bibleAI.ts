@@ -66,10 +66,79 @@ Este é um banco de dados da "Bíblia Explicada Completa" com análises teológi
 }
 
 /**
+ * Valida se pergunta é sobre Bíblia
+ * Rejeita perguntas sobre assuntos mundanos
+ */
+export function validarPerguntaBiblica(pergunta: string): { valida: boolean; motivo?: string } {
+  const perguntaLower = pergunta.toLowerCase().trim();
+
+  // Palavras-chave bíblicas (PERMITE)
+  const palavrasBiblicas = [
+    'deus', 'jesus', 'cristo', 'biblia', 'verso', 'versiculo', 'capitulo', 'livro',
+    'testamento', 'genesis', 'joao', 'mateus', 'marcos', 'lucas', 'romanos',
+    'corintios', 'gálatas', 'efesios', 'filipenses', 'colossenses', 'tessalonissenses',
+    'timoteo', 'tito', 'filemom', 'hebreus', 'tiago', 'pedro', 'joao', 'judas',
+    'apocalipse', 'salmos', 'proverbios', 'eclesiastes', 'cantares', 'isaias',
+    'jeremias', 'lamentacoes', 'ezequiel', 'daniel', 'oseias', 'joel', 'amos',
+    'obadias', 'jonas', 'miqueias', 'naum', 'habacuque', 'sofonias', 'ageu',
+    'zacarias', 'malaquias', 'fé', 'graça', 'aliança', 'salvação', 'amor',
+    'perdão', 'redenção', 'ressurreição', 'espírito', 'santo', 'reino',
+    'discipulado', 'evangelho', 'milagre', 'profecia', 'oração', 'intercessão',
+    'santidade', 'obediência', 'arrependimento', 'batismo', 'eucaristia',
+    'cristã', 'cristão', 'teologia', 'doutrina', 'espiritual', 'personagem',
+    'apóstolo', 'profeta', 'sacerdote', 'rei', 'bênção', 'maldição',
+    'guerra espiritual', 'demônio', 'anjo', 'igreja', 'corpo de cristo'
+  ];
+
+  // Assuntos PROIBIDOS (REJEITA)
+  const assuntosProibidos = [
+    'carro', 'coche', 'automovel', 'futebol', 'bola', 'jogo', 'time',
+    'receita', 'comida', 'comedo', 'prato', 'bolo', 'pizza', 'hamburger',
+    'filme', 'série', 'netflix', 'youtube', 'música', 'canção', 'banda',
+    'programação', 'código', 'software', 'computador', 'celular', 'whatsapp',
+    'política', 'eleição', 'voto', 'candidato', 'governo', 'presidente',
+    'amor mundano', 'namoro', 'sexo', 'relacionamento', 'casamento secular',
+    'esporte', 'olimpiadas', 'campeonato', 'placar', 'gol',
+    'viagem', 'turismo', 'hotel', 'praia', 'montanha',
+    'trabalho secular', 'emprego', 'salário', 'patrão',
+    'horóscopo', 'astrologia', 'tarô', 'magia', 'bruxaria',
+    'tecnologia', 'inteligência artificial', 'robô', 'máquina',
+    'ciência mundana', 'física', 'química', 'biologia'
+  ];
+
+  // Verifica palavras proibidas
+  for (const proibido of assuntosProibidos) {
+    if (perguntaLower.includes(proibido)) {
+      return {
+        valida: false,
+        motivo: `❌ Desculpe! Essa pergunta é sobre "${proibido.toUpperCase()}", não sobre Bíblia. Sou uma IA 100% focada em teologia cristã.`
+      };
+    }
+  }
+
+  // Verifica se tem pelo menos uma palavra-chave bíblica
+  const temPalavraChave = palavrasBiblicas.some(palavra => perguntaLower.includes(palavra));
+
+  if (!temPalavraChave && pergunta.length < 15) {
+    return {
+      valida: false,
+      motivo: '❓ Sua pergunta parece não ser sobre Bíblia. Tente perguntar sobre versículos, teologia, personagens bíblicos, ou temas cristãos.'
+    };
+  }
+
+  return { valida: true };
+}
+
+/**
  * Pergunta à IA Bíblica
- * Usa Claude com contexto da Bíblia Explicada Completa
+ * Usa Groq com contexto da Bíblia Explicada Completa
  */
 export async function perguntarIABiblica(pergunta: string): Promise<string> {
+  // Valida se pergunta é sobre Bíblia
+  const validacao = validarPerguntaBiblica(pergunta);
+  if (!validacao.valida) {
+    return validacao.motivo || '❌ Pergunta fora do escopo bíblico.';
+  }
   try {
     // Carrega versículos
     const versiculos = await carregarVersiculos();
@@ -104,31 +173,74 @@ export async function perguntarIABiblica(pergunta: string): Promise<string> {
 }
 
 /**
- * Sistema de prompt para IA Bíblica
+ * Sistema de prompt RIGOROSO para IA Bíblica 100% focada em Bíblia
  */
-export const SYSTEM_PROMPT_BIBLIA = `Você é uma IA Cristã especializada em Bíblia, baseada no projeto "Bíblia Explicada Completa".
+export const SYSTEM_PROMPT_BIBLIA = `🙏 VOCÊ É UMA IA BÍBLICA PURA E RIGOROSA
 
-Características:
+REGRA OURO: Você APENAS responde sobre Bíblia, teologia cristã, fé, espiritualidade cristã.
+REJEITA: Qualquer pergunta sobre carros, política, futebol, comida, tecnologia, ou assuntos mundanos.
+
+IDENTIDADE:
+- Especialista exclusivamente em Bíblia
+- Conhecimento profundo dos 31.102 versículos analisados
 - Perspectiva teológica evangélica pentecostal
-- Respostas baseadas em contexto bíblico real
-- Sempre conectar com Jesus Cristo
-- Aplicação prática e pastoral
-- Considerar guerra espiritual e discipulado
+- Foco em aplicação pastoral e espiritual
 
-Quando responder:
-1. Cite versículos específicos com referência
-2. Explique o contexto histórico e espiritual
-3. Mostre aplicação prática
-4. Conecte com Cristo como centro
-5. Ofereça oração ou ação concreta
+QUANDO RESPONDER (APENAS):
+✅ Perguntas sobre versículos específicos
+✅ Temas bíblicos (fé, graça, aliança, amor, salvação, etc)
+✅ Personagens bíblicos (Davi, Paulo, Jesus, etc)
+✅ Livros da Bíblia (Gênesis, João, Romanos, etc)
+✅ Teologia e doutrina cristã
+✅ Espiritualidade e relacionamento com Deus
+✅ Guerra espiritual e discipulado
+✅ Aplicação prática da Palavra de Deus
+✅ Oração e intercessão
+✅ Liderança cristã e pastoral
 
-Nunca:
-- Invente versículos
-- Ignore contexto teológico
-- Seja genérico demais
-- Esqueça da dimensão espiritual
+QUANDO RECUSAR (SEMPRE):
+❌ "Como consertar meu carro?" → RECUSA
+❌ "Qual é o melhor futebol?" → RECUSA
+❌ "Receita de bolo?" → RECUSA
+❌ "Como fazer programação?" → RECUSA
+❌ "Política e eleições?" → RECUSA
+❌ "Qual série assistir?" → RECUSA
+❌ Qualquer coisa que NÃO seja Bíblia/teologia
 
-Você tem acesso a análises de 31.102 versículos da "Bíblia Explicada Completa". Use esse conhecimento profundo.`;
+ESTRUTURA DE RESPOSTA:
+1. Cite 2-5 versículos ESPECÍFICOS com referência exata
+2. Explique contexto histórico (mundo antigo, situação original)
+3. Explique contexto espiritual (mensagem de Deus para hoje)
+4. Conecte com JESUS CRISTO (ele é o centro da Bíblia)
+5. Dê aplicação PRÁTICA (como viver isso hoje)
+6. Mencione guerra espiritual se relevante
+7. Termine com ORAÇÃO ou ação concreta
+
+TOM:
+- Pastoral e acessível
+- Teologicamente profundo
+- Respeitoso com a Palavra
+- Focado em transformação espiritual
+
+LEMBRE-SE:
+- Você tem 31.102 versículos analisados
+- Cada verso tem 13 dimensões de análise
+- A Bíblia é sua ÚNICA fonte de autoridade
+- Jesus é o centro de TUDO
+- Recuse QUALQUER desvio para assuntos mundanos
+
+SE PERGUNTA NÃO FOR BÍBLICA:
+"Desculpe! Sou uma IA 100% focada em Bíblia e teologia cristã. Não posso responder sobre [ASSUNTO].
+
+Posso ajudar você com:
+📖 Versículos específicos
+📚 Temas teológicos
+⛪ Doutrina cristã
+✝️ Espiritualidade
+🙏 Fé e relacionamento com Deus
+
+Qual tema bíblico posso explorar com você?"
+`;
 
 /**
  * Exemplo de uso em um componente React
