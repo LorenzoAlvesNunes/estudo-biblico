@@ -136,11 +136,51 @@ const GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions';
 const GROQ_MODEL = 'llama-3.3-70b-versatile';
 
 /**
+ * Detecta se a mensagem é apenas uma saudação/cumprimento.
+ */
+function ehSaudacao(texto: string): boolean {
+  const t = texto.toLowerCase().trim().replace(/[!?.,]/g, '');
+  const saudacoes = [
+    'oi', 'ola', 'olá', 'opa', 'oie', 'eai', 'e ai', 'e aí', 'salve',
+    'bom dia', 'boa tarde', 'boa noite', 'hello', 'hi', 'hey',
+    'paz', 'paz do senhor', 'graça e paz', 'a paz', 'a paz do senhor',
+    'tudo bem', 'tudo bom', 'blz', 'beleza', 'como vai', 'como voce esta',
+    'como você está', 'oi tudo bem', 'ola tudo bem', 'bom dia tudo bem',
+    'quem e voce', 'quem é você', 'quem voce e', 'o que voce faz',
+    'o que você faz', 'como funciona', 'me ajuda', 'me ajude', 'comecar',
+    'começar', 'start', 'inicio', 'início'
+  ];
+  return saudacoes.includes(t);
+}
+
+/**
+ * Resposta de apresentação para saudações.
+ */
+const RESPOSTA_APRESENTACAO = `👋 Olá! Que alegria ter você aqui!
+
+Sou a **IA Bíblica do Lumen Scriptura**, criada para te ajudar a estudar a Palavra de Deus com profundidade. Tenho acesso a análises de todos os **31.102 versículos** da Bíblia.
+
+Posso te ajudar com:
+
+📖 **Versículos** — significado e contexto de qualquer passagem
+📚 **Temas teológicos** — fé, graça, salvação, amor, aliança...
+✝️ **Personagens bíblicos** — Davi, Paulo, Jesus, Moisés...
+🙏 **Aplicação prática** — como viver a fé no dia a dia
+⛪ **Doutrina e espiritualidade** cristã
+
+O que você gostaria de explorar hoje na Palavra? 🕊️`;
+
+/**
  * Pergunta à IA Bíblica
  * Chama o Groq direto do navegador (client-side) com contexto da Bíblia Explicada Completa.
  * Não precisa de backend - funciona em hospedagem estática.
  */
 export async function perguntarIABiblica(pergunta: string): Promise<string> {
+  // Saudações recebem uma apresentação calorosa (sem chamar a API)
+  if (ehSaudacao(pergunta)) {
+    return RESPOSTA_APRESENTACAO;
+  }
+
   // Valida se pergunta é sobre Bíblia
   const validacao = validarPerguntaBiblica(pergunta);
   if (!validacao.valida) {
