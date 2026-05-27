@@ -385,7 +385,7 @@ function Input({
 function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: AppView; onNavigate: (view: AppView) => void; onLogout: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navItems = [
-    { id: "dashboard" as const, label: "Inicio", icon: Home },
+    { id: "dashboard" as const, label: "Início", icon: Home },
     { id: "study" as const, label: "Curso", icon: Library },
     { id: "bible-study" as const, label: "Estudo Biblico", icon: MessageSquare },
     { id: "sermons" as const, label: "Pregacoes", icon: FileText },
@@ -496,8 +496,8 @@ function Dashboard({
         <div className="grid gap-3">
           <Metric label="Progresso" value={`${percent}%`} detail={`${completedChapters} de ${totalChapters} capítulos`} />
           <Metric label="Streak" value={`${progress.streak} dias`} detail="ritmo de leitura" />
-          <Metric label="Nivel" value={getLevelName(progress.level)} detail={`${progress.xp} XP acumulado`} />
-          <Metric label="Quizzes e provas" value={`${progress.quizzesDone}/${progress.examsDone}`} detail="atividades concluidas" />
+          <Metric label="Nível" value={getLevelName(progress.level)} detail={`${progress.xp} XP acumulado`} />
+          <Metric label="Quizzes e provas" value={`${progress.quizzesDone}/${progress.examsDone}`} detail="atividades concluídas" />
         </div>
       </section>
 
@@ -662,16 +662,11 @@ function GeneralOverview({ progress, onOpenStudy }: { progress: UserProgress; on
 }
 
 function RankingView({ user, progress }: { user: AppUser; progress: UserProgress }) {
-  const mockUsers = [
-    { id: 1, name: "Lorenzo", level: 8, xp: 2500, streak: 15, booksStarted: 5 },
-    { id: 2, name: "Ana Carolina", level: 6, xp: 1850, streak: 12, booksStarted: 4 },
-    { id: 3, name: "Pastor Felipe", level: 7, xp: 2100, streak: 20, booksStarted: 6 },
-    { id: 4, name: "Maria", level: 5, xp: 1400, streak: 8, booksStarted: 3 },
-    { id: 5, name: "João", level: 4, xp: 950, streak: 5, booksStarted: 2 },
-    { id: 6, name: "Ester", level: 6, xp: 1700, streak: 10, booksStarted: 4 }
-  ].sort((a, b) => b.xp - a.xp);
-
-  const currentUserRank = mockUsers.findIndex((u) => u.name === user.name) + 1 || 1;
+  const booksStarted = Object.values(progress.completedChapters ?? {}).filter((chapters) => chapters.length > 0).length;
+  const ranking = [{ id: user.id, name: user.name, level: progress.level, xp: progress.xp, streak: progress.streak, booksStarted }].sort(
+    (a, b) => b.xp - a.xp
+  );
+  const currentUserRank = ranking.findIndex((u) => u.id === user.id) + 1 || 1;
 
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto max-w-[1000px] px-5 py-8">
@@ -692,8 +687,8 @@ function RankingView({ user, progress }: { user: AppUser; progress: UserProgress
               </tr>
             </thead>
             <tbody>
-              {mockUsers.map((u, idx) => (
-                <tr key={u.id} className={`border-b border-white/8 transition ${u.name === user.name ? "bg-gold-300/10" : "hover:bg-white/[0.02]"}`}>
+              {ranking.map((u, idx) => (
+                <tr key={u.id} className={`border-b border-white/8 transition ${u.id === user.id ? "bg-gold-300/10" : "hover:bg-white/[0.02]"}`}>
                   <td className="px-4 py-4 font-semibold text-gold-300">{idx + 1}</td>
                   <td className="px-4 py-4 font-medium">{u.name}</td>
                   <td className="px-4 py-4">{u.level}</td>
@@ -709,8 +704,12 @@ function RankingView({ user, progress }: { user: AppUser; progress: UserProgress
           </table>
         </div>
 
-        <div className="mt-8 rounded-2xl border border-white/8 bg-white/[0.025] p-6">
-          <p className="text-sm text-white/52 uppercase tracking-wider">Sua posicao</p>
+        <div className="mt-6 rounded-2xl border border-dashed border-white/12 bg-white/[0.02] p-5 text-center text-sm text-white/45">
+          O ranking cresce conforme mais pessoas estudam. Quando conectado ao banco, todos os membros aparecem aqui automaticamente.
+        </div>
+
+        <div className="mt-6 rounded-2xl border border-white/8 bg-white/[0.025] p-6">
+          <p className="text-sm text-white/52 uppercase tracking-wider">Sua posição</p>
           <p className="mt-2 text-3xl font-bold text-gold-300">#{currentUserRank}</p>
           <p className="mt-1 text-white/58">{user.name} - {progress.level} nível - {progress.xp} XP</p>
         </div>
@@ -977,6 +976,86 @@ function StudySidebar({
   );
 }
 
+const BIBLE_TRANSLATIONS = [
+  { id: "almeida", label: "Almeida (PT)" },
+  { id: "kjv", label: "King James (EN)" },
+  { id: "web", label: "World English (EN)" },
+  { id: "asv", label: "Std. 1901 (EN)" },
+  { id: "clementine", label: "Vulgata (LA)" }
+];
+
+type BibleVerse = { verse: number; text: string };
+
+function BibleChapterText({ book, chapter, fontSize }: { book: BibleBook; chapter: number; fontSize: number }) {
+  const [translation, setTranslation] = useState("almeida");
+  const [verses, setVerses] = useState<BibleVerse[] | null>(null);
+  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+
+  useEffect(() => {
+    let active = true;
+    setStatus("loading");
+    setVerses(null);
+    const reference = encodeURIComponent(`${book.name} ${chapter}`);
+    fetch(`https://bible-api.com/${reference}?translation=${translation}`)
+      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("fetch"))))
+      .then((data) => {
+        if (!active) return;
+        const parsed: BibleVerse[] = (data?.verses ?? []).map((item: { verse: number; text: string }) => ({
+          verse: item.verse,
+          text: (item.text ?? "").replace(/\s+/g, " ").trim()
+        }));
+        if (parsed.length === 0) {
+          setStatus("error");
+          return;
+        }
+        setVerses(parsed);
+        setStatus("ok");
+      })
+      .catch(() => {
+        if (active) setStatus("error");
+      });
+    return () => {
+      active = false;
+    };
+  }, [book.name, chapter, translation]);
+
+  return (
+    <div className="mt-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-white/42">Versão:</span>
+        {BIBLE_TRANSLATIONS.map((item) => (
+          <button
+            key={item.id}
+            onClick={() => setTranslation(item.id)}
+            className={`rounded-full border px-3 py-1 text-xs transition ${
+              translation === item.id ? "border-gold-300/40 bg-gold-300/10 text-gold-200" : "border-white/10 bg-white/[0.03] text-white/52 hover:text-white"
+            }`}
+          >
+            {item.label}
+          </button>
+        ))}
+      </div>
+
+      <div className="mt-4 max-h-[58vh] overflow-y-auto pr-2">
+        {status === "loading" && <p className="text-white/45">Carregando texto bíblico...</p>}
+        {status === "error" && (
+          <p className="text-white/45">Não foi possível carregar este capítulo nesta versão. Tente outra versão ou verifique sua conexão.</p>
+        )}
+        {status === "ok" && verses && (
+          <p className="leading-9 text-white/74" style={{ fontSize }}>
+            {verses.map((verse) => (
+              <span key={verse.verse}>
+                <sup className="mr-1 align-super text-xs text-gold-300/70">{verse.verse}</sup>
+                {verse.text}{" "}
+              </span>
+            ))}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function ReadingCard({
   book,
   chapter,
@@ -1014,9 +1093,7 @@ function ReadingCard({
         <p className="text-sm uppercase tracking-[0.2em] text-gold-300/70">Versiculo-chave</p>
         <p className="mt-3 leading-8 text-halo" style={{ fontSize }}>{keyVerse}</p>
       </div>
-      <p className="mt-5 leading-8 text-white/64" style={{ fontSize }}>
-        Leitura guiada: abra sua Bíblia em {book.name} {chapter}. Leia com calma, marque palavras repetidas e observe quem fala, quem age, qual conflito aparece e como Deus conduz a narrativa.
-      </p>
+      <BibleChapterText book={book} chapter={chapter} fontSize={fontSize} />
     </section>
   );
 }

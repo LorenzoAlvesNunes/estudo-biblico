@@ -6,10 +6,10 @@ export function getBiblePercent(progress: UserProgress, totalBooks: number) {
 
 export function getLevelName(level: number) {
   if (level >= 20) return "Mestre das Escrituras";
-  if (level >= 12) return "Discipulo Avancado";
-  if (level >= 7) return "Explorador Biblico";
+  if (level >= 12) return "Discípulo Avançado";
+  if (level >= 7) return "Explorador Bíblico";
   if (level >= 3) return "Aluno Fiel";
-  return "Inicio da Jornada";
+  return "Início da Jornada";
 }
 
 export function addXp(progress: UserProgress, xp: number): UserProgress {
