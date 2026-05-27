@@ -22,6 +22,7 @@ import {
   PenLine,
   Plus,
   Search,
+  Trash2,
   Type,
   X
 } from "lucide-react";
@@ -1032,6 +1033,7 @@ function SermonsStudio({
 }) {
   const [activeId, setActiveId] = useState(progress.sermons[0]?.id ?? "new");
   const active = progress.sermons.find((sermon) => sermon.id === activeId) ?? createEmptySermon();
+  const activeExists = progress.sermons.some((sermon) => sermon.id === activeId);
 
   function upsertSermon(patch: Partial<SermonDraft>) {
     const next = { ...active, ...patch, updatedAt: new Date().toISOString() };
@@ -1052,6 +1054,18 @@ function SermonsStudio({
     setProgress((current) => ({ ...current, sermons: [sermon, ...current.sermons] }));
   }
 
+  function deleteActiveSermon() {
+    if (!activeExists) return;
+
+    const nextSermons = progress.sermons.filter((sermon) => sermon.id !== activeId);
+    setActiveId(nextSermons[0]?.id ?? "new");
+    setProgress((current) => ({
+      ...current,
+      sermons: current.sermons.filter((sermon) => sermon.id !== activeId),
+      recentActivity: ["Removeu uma pregacao", ...current.recentActivity].slice(0, 6)
+    }));
+  }
+
   return (
     <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -12 }} className="mx-auto grid max-w-[1400px] gap-5 px-5 py-8 lg:grid-cols-[340px_1fr]">
       <aside className="rounded-3xl border border-white/10 bg-white/[0.035] p-5 shadow-soft">
@@ -1060,7 +1074,7 @@ function SermonsStudio({
             <p className="text-sm uppercase tracking-[0.22em] text-gold-300/70">Pregacoes</p>
             <h1 className="mt-1 text-2xl font-semibold">Esbocos</h1>
           </div>
-          <button onClick={newSermon} className="grid h-10 w-10 place-items-center rounded-full bg-halo text-ink">
+          <button onClick={newSermon} title="Nova pregacao" className="grid h-10 w-10 place-items-center rounded-full bg-halo text-ink transition hover:scale-105">
             <Plus size={18} />
           </button>
         </div>
@@ -1076,7 +1090,26 @@ function SermonsStudio({
       </aside>
 
       <section className="rounded-3xl border border-white/10 bg-[#101012]/72 p-6 shadow-soft">
-        <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Editor estilo Notion</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <p className="text-sm uppercase tracking-[0.24em] text-gold-300/80">Editor estilo Notion</p>
+            <p className="mt-2 text-sm text-white/42">Crie, edite ou remova seus esbocos com salvamento automatico.</p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <button onClick={newSermon} className="inline-flex h-10 items-center gap-2 rounded-full border border-gold-300/20 bg-gold-300/[0.10] px-4 text-sm font-semibold text-gold-100 transition hover:bg-gold-300/[0.16]">
+              <Plus size={15} />
+              Nova
+            </button>
+            <button
+              onClick={deleteActiveSermon}
+              disabled={!activeExists}
+              className="inline-flex h-10 items-center gap-2 rounded-full border border-red-400/20 bg-red-400/[0.08] px-4 text-sm font-semibold text-red-100 transition hover:bg-red-400/[0.14] disabled:cursor-not-allowed disabled:border-white/8 disabled:bg-white/[0.03] disabled:text-white/28"
+            >
+              <Trash2 size={15} />
+              Excluir
+            </button>
+          </div>
+        </div>
         <input value={active.title} onChange={(event) => upsertSermon({ title: event.target.value })} className="mt-3 w-full bg-transparent text-4xl font-semibold outline-none placeholder:text-white/24" placeholder="Titulo da pregacao" />
         <div className="mt-6 grid gap-4 md:grid-cols-2">
           <SermonField label="Tema" value={active.theme} onChange={(value) => upsertSermon({ theme: value })} />
