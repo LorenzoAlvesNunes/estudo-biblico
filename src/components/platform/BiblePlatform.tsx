@@ -24,6 +24,7 @@ import {
   Plus,
   Presentation,
   Search,
+  Settings,
   Trash2,
   Type,
   X
@@ -42,6 +43,7 @@ import {
   recoverPassword,
   register
 } from "@/lib/userStore";
+import { BIBLE_TRANSLATIONS, getApiBibleVersionId, getApiKey, setApiKey, clearApiKey } from "@/lib/bibleConfig";
 
 type AuthMode = "login" | "register" | "recover";
 type AppView = "dashboard" | "study" | "bible-study" | "sermons" | "general" | "ranking" | "book-selector";
@@ -150,6 +152,7 @@ export function BiblePlatform() {
   const [view, setView] = useState<AppView>("dashboard");
   const [selectedBook, setSelectedBook] = useState<BibleBook>(books[0] as BibleBook);
   const [chapter, setChapter] = useState(1);
+  const [showSettings, setShowSettings] = useState(false);
 
   useEffect(() => {
     const session = getStoredSession();
@@ -217,7 +220,7 @@ export function BiblePlatform() {
 
   return (
     <main className="min-h-screen bg-study text-halo">
-      <TopBar user={user} view={view} onNavigate={setView} onLogout={handleLogout} />
+      <TopBar user={user} view={view} onNavigate={setView} onLogout={handleLogout} onOpenSettings={() => setShowSettings(true)} />
       <AnimatePresence mode="wait">
         {view === "dashboard" && (
           <Dashboard
@@ -254,6 +257,7 @@ export function BiblePlatform() {
           <BookSelectorView key="book-selector" onOpenStudy={openStudy} progress={progress} />
         )}
       </AnimatePresence>
+      <ApiKeyModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </main>
   );
 }
@@ -382,7 +386,103 @@ function Input({
   );
 }
 
-function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: AppView; onNavigate: (view: AppView) => void; onLogout: () => void }) {
+function ApiKeyModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  const [apiKey, setApiKey] = useState(getApiKey() || "");
+  const [saved, setSaved] = useState(false);
+
+  const handleSave = () => {
+    if (apiKey.trim()) {
+      setApiKey(apiKey.trim());
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2000);
+    }
+  };
+
+  const handleClear = () => {
+    clearApiKey();
+    setApiKey("");
+  };
+
+  if (!isOpen) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      onClick={onClose}
+      className="fixed inset-0 z-[999] grid place-items-center bg-black/40 backdrop-blur-sm"
+    >
+      <motion.div
+        initial={{ scale: 0.9, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        exit={{ scale: 0.9, opacity: 0 }}
+        onClick={(e) => e.stopPropagation()}
+        className="w-full max-w-md rounded-3xl border border-white/15 bg-[#08080a]/95 p-6 shadow-2xl"
+      >
+        <div className="mb-5 flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-white">Configurações de API</h3>
+          <button onClick={onClose} className="text-white/52 transition hover:text-white">
+            <X size={20} />
+          </button>
+        </div>
+
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm text-white/72 mb-2">
+              Chave API.Bible{" "}
+              <a
+                href="https://api.scripture.api.bible"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-gold-300/80 hover:text-gold-300 underline"
+              >
+                (obter aqui)
+              </a>
+            </label>
+            <input
+              type="password"
+              value={apiKey}
+              onChange={(e) => setApiKey(e.target.value)}
+              placeholder="Cole sua chave API.Bible aqui..."
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-4 py-2 text-white/82 outline-none transition focus:border-gold-300/45 placeholder:text-white/25"
+            />
+            <p className="mt-2 text-xs text-white/45">
+              Esta chave permite acessar NVI, ARA e outras versões pagãs da Bíblia.
+            </p>
+          </div>
+
+          <div className="flex gap-2 pt-4">
+            <button
+              onClick={handleSave}
+              className={`flex-1 rounded-lg py-2 text-sm font-medium transition ${
+                saved
+                  ? "bg-green-600/40 text-green-300 border border-green-600/30"
+                  : "bg-gold-300/15 text-gold-300 border border-gold-300/30 hover:border-gold-300/60"
+              }`}
+            >
+              {saved ? "✓ Salvo" : "Salvar"}
+            </button>
+            <button
+              onClick={handleClear}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-red-900/20 text-red-300/80 border border-red-600/20 transition hover:border-red-600/40"
+            >
+              Limpar
+            </button>
+            <button
+              onClick={onClose}
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-white/10 text-white/72 border border-white/10 transition hover:bg-white/[0.12]"
+            >
+              Fechar
+            </button>
+          </div>
+        </div>
+      </motion.div>
+    </motion.div>
+  );
+}
+
+function TopBar({ user, view, onNavigate, onLogout, onOpenSettings }: { user: AppUser; view: AppView; onNavigate: (view: AppView) => void; onLogout: () => void; onOpenSettings: () => void }) {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navItems = [
     { id: "dashboard" as const, label: "Início", icon: Home },
@@ -423,6 +523,9 @@ function TopBar({ user, view, onNavigate, onLogout }: { user: AppUser; view: App
         <div className="flex items-center gap-2">
           <InstallAppButton compact />
           <span className="hidden text-sm text-white/46 sm:block">{user.name}</span>
+          <button onClick={onOpenSettings} title="Configurações" className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white">
+            <Settings size={16} />
+          </button>
           <button onClick={onLogout} title="Sair" className="grid h-9 w-9 place-items-center rounded-full border border-white/10 bg-white/[0.04] text-white/58 transition hover:text-white">
             <LogOut size={16} />
           </button>
@@ -976,44 +1079,92 @@ function StudySidebar({
   );
 }
 
-const BIBLE_TRANSLATIONS = [
-  { id: "almeida", label: "Almeida (PT)" },
-  { id: "kjv", label: "King James (EN)" },
-  { id: "web", label: "World English (EN)" },
-  { id: "asv", label: "Std. 1901 (EN)" },
-  { id: "clementine", label: "Vulgata (LA)" }
-];
-
 type BibleVerse = { verse: number; text: string };
 
 function BibleChapterText({ book, chapter, fontSize }: { book: BibleBook; chapter: number; fontSize: number }) {
   const [translation, setTranslation] = useState("almeida");
   const [verses, setVerses] = useState<BibleVerse[] | null>(null);
-  const [status, setStatus] = useState<"loading" | "ok" | "error">("loading");
+  const [status, setStatus] = useState<"loading" | "ok" | "error" | "api-key-needed">("loading");
 
   useEffect(() => {
     let active = true;
     setStatus("loading");
     setVerses(null);
-    const reference = encodeURIComponent(`${book.name} ${chapter}`);
-    fetch(`https://bible-api.com/${reference}?translation=${translation}`)
-      .then((response) => (response.ok ? response.json() : Promise.reject(new Error("fetch"))))
-      .then((data) => {
-        if (!active) return;
-        const parsed: BibleVerse[] = (data?.verses ?? []).map((item: { verse: number; text: string }) => ({
-          verse: item.verse,
-          text: (item.text ?? "").replace(/\s+/g, " ").trim()
-        }));
-        if (parsed.length === 0) {
-          setStatus("error");
-          return;
+
+    const selectedTranslation = BIBLE_TRANSLATIONS.find((t) => t.id === translation);
+    if (!selectedTranslation) {
+      setStatus("error");
+      return;
+    }
+
+    const apiKey = getApiKey();
+
+    // For API.Bible versions that require API key
+    if (selectedTranslation.provider === "api-bible") {
+      if (!apiKey) {
+        setStatus("api-key-needed");
+        return;
+      }
+
+      const versionId = getApiBibleVersionId(translation);
+      if (!versionId) {
+        setStatus("error");
+        return;
+      }
+
+      // API.Bible endpoint
+      const bookId = book.name.toLowerCase().replace(/[\s\-]/g, "");
+      const url = `https://api.scripture.api.bible/v1/bibles/${versionId}/chapters/${bookId}${chapter}?content-type=text&include-verse-numbers=true`;
+
+      fetch(url, {
+        headers: {
+          "api-key": apiKey,
+          "Accept": "application/json"
         }
-        setVerses(parsed);
-        setStatus("ok");
       })
-      .catch(() => {
-        if (active) setStatus("error");
-      });
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error("fetch"))))
+        .then((data) => {
+          if (!active) return;
+          // Parse API.Bible format
+          const content = data?.data?.content || "";
+          const verseMatches = Array.from(content.matchAll(/\{(\d+)\}([^{]*)/g)) as RegExpExecArray[];
+          const parsed: BibleVerse[] = verseMatches.map((match) => ({
+            verse: parseInt(match[1] ?? "0"),
+            text: (match[2] ?? "").replace(/\s+/g, " ").trim()
+          }));
+          if (parsed.length === 0) {
+            setStatus("error");
+            return;
+          }
+          setVerses(parsed);
+          setStatus("ok");
+        })
+        .catch(() => {
+          if (active) setStatus("error");
+        });
+    } else {
+      // bible-api.com (free)
+      const reference = encodeURIComponent(`${book.name} ${chapter}`);
+      fetch(`https://bible-api.com/${reference}?translation=${translation}`)
+        .then((response) => (response.ok ? response.json() : Promise.reject(new Error("fetch"))))
+        .then((data) => {
+          if (!active) return;
+          const parsed: BibleVerse[] = (data?.verses ?? []).map((item: { verse: number; text: string }) => ({
+            verse: item.verse,
+            text: (item.text ?? "").replace(/\s+/g, " ").trim()
+          }));
+          if (parsed.length === 0) {
+            setStatus("error");
+            return;
+          }
+          setVerses(parsed);
+          setStatus("ok");
+        })
+        .catch(() => {
+          if (active) setStatus("error");
+        });
+    }
+
     return () => {
       active = false;
     };
@@ -1038,6 +1189,17 @@ function BibleChapterText({ book, chapter, fontSize }: { book: BibleBook; chapte
 
       <div className="mt-4 max-h-[58vh] overflow-y-auto pr-2">
         {status === "loading" && <p className="text-white/45">Carregando texto bíblico...</p>}
+        {status === "api-key-needed" && (
+          <div className="rounded bg-yellow-900/20 border border-yellow-700/30 p-3">
+            <p className="text-sm text-yellow-300/80">
+              Esta versão (NVI/ARA) requer uma chave de API da API.Bible.{" "}
+              <a href="https://api.scripture.api.bible" target="_blank" rel="noopener noreferrer" className="underline hover:text-yellow-200">
+                Obtenha uma chave grátis aqui
+              </a>
+              .
+            </p>
+          </div>
+        )}
         {status === "error" && (
           <p className="text-white/45">Não foi possível carregar este capítulo nesta versão. Tente outra versão ou verifique sua conexão.</p>
         )}
