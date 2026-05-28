@@ -218,7 +218,10 @@ export async function login(email: string, password: string): Promise<AppUser> {
     .eq("email", normalizedEmail)
     .maybeSingle();
 
-  if (error) throw new Error("Nao foi possivel entrar. Tente novamente.");
+  if (error) {
+    console.error("Erro no login:", error);
+    throw new Error(`Não foi possível entrar: ${error.message}`);
+  }
   if (!data || data.password_hash !== hash) throw new Error("E-mail ou senha incorretos.");
 
   const user = { id: data.id as string, email: data.email as string, name: data.name as string, provider: "supabase" as const };
@@ -236,7 +239,7 @@ export async function register(name: string, email: string, password: string): P
   }
 
   const { data: existing } = await supabase.from("app_users").select("id").eq("email", normalizedEmail).maybeSingle();
-  if (existing) throw new Error("Ja existe uma conta com esse e-mail. Tente entrar.");
+  if (existing) throw new Error("Já existe uma conta com esse e-mail. Tente entrar.");
 
   const hash = await hashPassword(password);
   const { data, error } = await supabase
@@ -245,7 +248,11 @@ export async function register(name: string, email: string, password: string): P
     .select("id, email, name")
     .single();
 
-  if (error || !data) throw new Error("Nao foi possivel cadastrar. Tente novamente.");
+  if (error || !data) {
+    console.error("Erro no cadastro:", error);
+    const motivo = error?.message ? `: ${error.message}` : "";
+    throw new Error(`Não foi possível cadastrar${motivo}. Verifique se o banco de dados está configurado.`);
+  }
 
   const user = { id: data.id as string, email: data.email as string, name: data.name as string, provider: "supabase" as const };
   storeSession(user);

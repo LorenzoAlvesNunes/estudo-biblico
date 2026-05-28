@@ -340,10 +340,10 @@ function LoadingScreen() {
 }
 
 function AuthScreen({ onAuthenticated }: { onAuthenticated: (user: AppUser) => Promise<void> }) {
-  const [mode, setMode] = useState<AuthMode>("login");
-  const [name, setName] = useState("Lorenzo");
-  const [email, setEmail] = useState("Lorenzoalzeny.com");
-  const [password, setPassword] = useState("Bela1980@");
+  const [mode, setMode] = useState<AuthMode>("register");
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
 

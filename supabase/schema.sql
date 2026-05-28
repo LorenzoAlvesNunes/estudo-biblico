@@ -1,8 +1,13 @@
 -- =====================================================================
 -- Lumen Scriptura - schema alinhado ao codigo (schema public)
--- Autenticacao e feita pelo Supabase Auth (auth.users).
+-- Autenticacao customizada via tabela app_users (e-mail + senha hash).
 -- study_progress.payload (JSONB) e a fonte da verdade do progresso.
 -- As demais tabelas sao derivadas, usadas para consultas e ranking.
+--
+-- COMO RODAR:
+-- 1) Abra o Supabase Dashboard -> SQL Editor
+-- 2) Cole TODO este arquivo
+-- 3) Clique em "Run"
 -- =====================================================================
 
 -- Remove tabelas antigas/desalinhadas (estavam vazias)
@@ -10,7 +15,7 @@ DROP TABLE IF EXISTS users, user_progress, completed_exams, quiz_scores, recent_
 DROP TABLE IF EXISTS completed_chapters, study_notes, favorites, sermons CASCADE;
 DROP TABLE IF EXISTS study_progress, profiles, app_users CASCADE;
 
--- Usuarios do app (login por e-mail/senha, senha guardada como hash)
+-- Usuarios do app (login por e-mail/senha, senha guardada como hash SHA-256)
 CREATE TABLE app_users (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   email TEXT UNIQUE NOT NULL,
@@ -71,7 +76,38 @@ CREATE TABLE sermons (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- Indices para performance
 CREATE INDEX IF NOT EXISTS idx_completed_chapters_user ON completed_chapters(user_id);
 CREATE INDEX IF NOT EXISTS idx_study_notes_user ON study_notes(user_id);
 CREATE INDEX IF NOT EXISTS idx_favorites_user ON favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_sermons_user ON sermons(user_id);
+
+-- =====================================================================
+-- Politicas de acesso publico (RLS)
+-- O app usa autenticacao customizada (sem auth.uid()), entao precisamos
+-- liberar leitura/escrita anonima. Senhas sao guardadas como hash.
+-- =====================================================================
+
+-- Habilita RLS e cria politicas permissivas (mais limpo que desabilitar RLS)
+ALTER TABLE app_users         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_progress    ENABLE ROW LEVEL SECURITY;
+ALTER TABLE completed_chapters ENABLE ROW LEVEL SECURITY;
+ALTER TABLE study_notes       ENABLE ROW LEVEL SECURITY;
+ALTER TABLE favorites         ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sermons           ENABLE ROW LEVEL SECURITY;
+
+-- Remove politicas antigas (idempotente)
+DROP POLICY IF EXISTS "permitir tudo" ON app_users;
+DROP POLICY IF EXISTS "permitir tudo" ON study_progress;
+DROP POLICY IF EXISTS "permitir tudo" ON completed_chapters;
+DROP POLICY IF EXISTS "permitir tudo" ON study_notes;
+DROP POLICY IF EXISTS "permitir tudo" ON favorites;
+DROP POLICY IF EXISTS "permitir tudo" ON sermons;
+
+-- Politicas permissivas (qualquer pessoa pode cadastrar/entrar/salvar)
+CREATE POLICY "permitir tudo" ON app_users         FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permitir tudo" ON study_progress    FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permitir tudo" ON completed_chapters FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permitir tudo" ON study_notes       FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permitir tudo" ON favorites         FOR ALL USING (true) WITH CHECK (true);
+CREATE POLICY "permitir tudo" ON sermons           FOR ALL USING (true) WITH CHECK (true);
